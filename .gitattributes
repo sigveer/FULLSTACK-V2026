@@ -1,0 +1,20 @@
+# Normalize text files to LF in repository
+* text=auto eol=lf
+
+# Keep shell scripts LF on all platforms
+*.sh text eol=lf
+mvnw text eol=lf
+
+# Keep Windows command scripts CRLF
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Treat common binaries as binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.jar binary
+*.war binary

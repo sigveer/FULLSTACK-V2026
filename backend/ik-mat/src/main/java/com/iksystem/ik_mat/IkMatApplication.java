@@ -1,4 +1,4 @@
-package main.java.com.iksystem.ik_mat;
+package com.iksystem.ik_mat;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

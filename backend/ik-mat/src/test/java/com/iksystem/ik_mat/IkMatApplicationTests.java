@@ -1,4 +1,4 @@
-package test.java.com.iksystem.ik_mat;
+package com.iksystem.ik_mat;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

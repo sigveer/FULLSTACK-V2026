@@ -1,4 +1,4 @@
-package main.java.com.iksystem.ik_alkohol;
+package com.iksystem.ik_alkohol;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

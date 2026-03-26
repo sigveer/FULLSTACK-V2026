@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - feature/**
+      - feat/**
   pull_request:
 
 permissions:
@@ -30,7 +31,7 @@ jobs:
           cache: maven
 
       - name: Build and run tests
-        run: ./ik-common/mvnw -B -ntp -f pom.xml clean verify
+        run: ./mvnw -B -ntp -f pom.xml clean verify
 
   frontend:
     name: Frontend lint and build

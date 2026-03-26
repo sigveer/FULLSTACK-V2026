@@ -13,18 +13,12 @@
 
     <artifactId>ik-alkohol</artifactId>
     <name>ik-alkohol</name>
-    <description>IK-Alkohol service module</description>
+    <description>IK-Alkohol alcohol compliance service</description>
 
     <dependencies>
         <dependency>
             <groupId>com.iksystem</groupId>
             <artifactId>ik-common</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
         <dependency>

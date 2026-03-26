@@ -18,38 +18,46 @@ services:
       retries: 10
       start_period: 20s
 
-  backend:
-    image: maven:3.9.9-eclipse-temurin-21
-    container_name: ik_backend
-    working_dir: /workspace/backend
-    command: mvn -f ik-common/pom.xml spring-boot:run
+  ik-mat:
+    build:
+      context: ./backend
+      args:
+        MODULE: ik-mat
+    container_name: ik_mat
     environment:
       DB_URL: jdbc:mysql://mysql:3306/ik_system?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       DB_USERNAME: ik_user
       DB_PASSWORD: ik_password
     ports:
-      - "8080:8080"
-    volumes:
-      - ./backend:/workspace/backend
-      - maven_cache:/root/.m2
+      - "8081:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  ik-alkohol:
+    build:
+      context: ./backend
+      args:
+        MODULE: ik-alkohol
+    container_name: ik_alkohol
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/ik_system?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: ik_user
+      DB_PASSWORD: ik_password
+    ports:
+      - "8082:8080"
     depends_on:
       mysql:
         condition: service_healthy
 
   frontend:
-    image: node:22-alpine
+    build: ./frontend
     container_name: ik_frontend
-    working_dir: /workspace/frontend
-    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
     ports:
-      - "5173:5173"
-    volumes:
-      - ./frontend:/workspace/frontend
-      - frontend_node_modules:/workspace/frontend/node_modules
+      - "80:80"
     depends_on:
-      - backend
+      - ik-mat
+      - ik-alkohol
 
 volumes:
   mysql_data:
-  maven_cache:
-  frontend_node_modules:

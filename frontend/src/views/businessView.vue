@@ -1,32 +1,28 @@
 <script setup lang="ts">
-export default {
-  name: "ChooseOrganization",
-  data() {
-    return {
-      selectedCompany: 1,
-      companies: [
-        {
-          id: 1,
-          initials: "ES",
-          name: "Everest Sushi & Fusion",
-          org: "937 219 997",
-          role: "Leder",
-          logoClass: "purple",
-          roleClass: "purple-badge",
-        },
-        {
-          id: 2,
-          initials: "CT",
-          name: "Cafe Testesen",
-          org: "000 000 000",
-          role: "Admin",
-          logoClass: "green",
-          roleClass: "green-badge",
-        },
-      ],
-    };
+import { ref } from "vue";
+
+const selectedCompany = ref(1);
+
+const companies = [
+  {
+    id: 1,
+    initials: "ES",
+    name: "Everest Sushi & Fusion",
+    org: "937 219 997",
+    role: "Leder",
+    logoClass: "purple",
+    roleClass: "purple-badge",
   },
-};
+  {
+    id: 2,
+    initials: "CT",
+    name: "Cafe Testesen",
+    org: "000 000 000",
+    role: "Admin",
+    logoClass: "green",
+    roleClass: "green-badge",
+  },
+];
 </script>
 
 <template>

@@ -10,8 +10,25 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import com.iksystem.`ik-common`.organization.model.Organization
 import java.time.Instant
 
+/**
+ * JPA entity representing a user in the system.
+ *
+ * Every user belongs to exactly one [Organization] and is assigned a [Role]
+ * that determines their access level. Users can be soft-disabled via [active].
+ *
+ * @property id Auto-generated primary key.
+ * @property email Unique login email address.
+ * @property password BCrypt-hashed password.
+ * @property fullName User's display name.
+ * @property phoneNumber Contact phone number.
+ * @property role The user's authorization role (defaults to [Role.EMPLOYEE]).
+ * @property organization The organization this user belongs to.
+ * @property active Whether the account is enabled; `false` prevents login.
+ * @property createdAt Timestamp set automatically when the row is first inserted.
+ */
 @Entity
 @Table(name = "users")
 data class User (

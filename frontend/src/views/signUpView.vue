@@ -9,13 +9,13 @@
 
       <div class="steps-col">
         <div class="step-entry">
-          <div class="step-label active">Steg 1: Registrering</div>
+          <div class="step-label active">Steg 1</div>
           <div class="step-dot active"></div>
         </div>
         <div class="step-line"></div>
         <div class="step-entry">
           <div class="step-dot"></div>
-          <div class="step-label">Steg 2: Bekreftelse</div>
+          <div class="step-label">Steg 2</div>
         </div>
       </div>
 

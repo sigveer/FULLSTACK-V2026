@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import LoginForm from '@/components/LoginForm.vue'
+import { ref } from 'vue'
 
+const loginFormRef = ref<InstanceType<typeof LoginForm> | null>(null)
 </script>
 
 <template>
@@ -7,99 +10,70 @@
     <p class="step">STEG 1: INNLOGGING</p>
 
     <div class="card">
-      <h2>IK-Komplett</h2>
-      <p class="subtitle">Logg inn for å fortsette</p>
+      <div>
+        <h2>IK-Komplett</h2>
+        <p class="subtitle">Logg inn for å fortsette</p>
+      </div>
 
-      <label>E-post</label>
-      <input
-        type="email"
-        placeholder="mail@mail.com"
-      />
+      <LoginForm ref="loginFormRef" />
+    </div>
 
-      <label>Passord</label>
-      <input
-        type="password"
-        placeholder="••••••••"
-      />
-
-      <button>Logg inn</button>
-
-      <p class="forgot">Glemt passord?</p>
+    <div v-if="loginFormRef?.loginError" class="error-card">
+      Feil e-post eller passord
     </div>
   </div>
-lklkl
 </template>
 
 <style scoped>
-
 .container {
   display: flex;
   flex-direction: column;
   align-items: center;
   margin-top: 40px;
+  justify-content: center;
+  height: 90vh;
+  margin-bottom: 20px;
   font-family: Arial, sans-serif;
 }
 
 .step {
-  color: #666;
+  color: hsl(var(--muted-foreground));
   margin-bottom: 16px;
   font-weight: 500;
 }
 
 .card {
   width: 350px;
-  background: #f7f7f7;
-  border-radius: 12px;
+  background: hsl(var(--card));
+  border-radius: 10px;
   padding: 24px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 h2 {
-  color: #5b50c7;
+  color: hsl(var(--primary));
   text-align: center;
   margin-bottom: 8px;
 }
 
 .subtitle {
   text-align: center;
-  color: #666;
+  color: hsl(var(--muted-foreground));
   margin-bottom: 20px;
 }
 
-label {
-  display: block;
+.error-card {
+  width: 350px;
   margin-top: 12px;
-  margin-bottom: 4px;
-  font-weight: 500;
-}
-
-input {
-  width: 100%;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-}
-
-button {
-  width: 100%;
-  margin-top: 20px;
-  padding: 12px;
-  border: none;
+  padding: 12px 16px;
+  background: hsl(var(--destructive) / 0.1);
+  border: 1px solid hsl(var(--destructive) / 0.3);
   border-radius: 10px;
-  background-color: #5b50c7;
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-button:hover {
-  background-color: #4a42a8;
-}
-
-.forgot {
+  color: hsl(var(--destructive));
+  font-size: 0.875rem;
   text-align: center;
-  margin-top: 12px;
-  color: #777;
-  font-size: 14px;
 }
 </style>

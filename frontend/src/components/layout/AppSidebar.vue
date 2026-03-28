@@ -41,7 +41,7 @@ const sections = computed(() => [
   },
   {
     title: 'IK-ALKOHOL',
-    items: ['Opplaering', 'Bevilling'],
+    items: ['Opplæring', 'Bevilling'],
   },
   {
     title: 'FELLES',

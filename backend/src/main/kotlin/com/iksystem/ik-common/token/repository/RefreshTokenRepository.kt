@@ -37,15 +37,23 @@ interface RefreshTokenRepository : JpaRepository<RefreshToken, Long> {
     fun revokeAllByUserId(@Param("userId") userId: Long)
 
     /**
-     * Deletes all refresh tokens whose [RefreshToken.expiresAt] is in the past.
+     * Revokes all refresh tokens for a user within a specific organization.
      *
-     * Intended to be called by a scheduled cleanup job.
+     * Used when a user switches orgs or is removed from an organization,
+     * so only tokens scoped to that org are invalidated.
+     *
+     * @param userId The user's primary key.
+     * @param organizationId The organization whose tokens should be revoked.
      */
-    /** Revokes all refresh tokens for a user within a specific organization. */
     @Modifying
     @Query("UPDATE RefreshToken r SET r.revoked = true WHERE r.user.id = :userId AND r.organizationId = :organizationId")
     fun revokeAllByUserIdAndOrganizationId(@Param("userId") userId: Long, @Param("organizationId") organizationId: Long)
 
+    /**
+     * Deletes all refresh tokens whose [RefreshToken.expiresAt] is in the past.
+     *
+     * Intended to be called by a scheduled cleanup job.
+     */
     @Modifying
     @Query("DELETE FROM RefreshToken r WHERE r.expiresAt < CURRENT_TIMESTAMP")
     fun deleteExpired()

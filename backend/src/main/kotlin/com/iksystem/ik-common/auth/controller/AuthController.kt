@@ -7,6 +7,7 @@ import com.iksystem.`ik-common`.auth.dto.RefreshRequest
 import com.iksystem.`ik-common`.auth.dto.RegisterRequest
 import com.iksystem.`ik-common`.auth.dto.SelectOrgRequest
 import com.iksystem.`ik-common`.auth.service.AuthService
+import com.iksystem.`ik-common`.membership.dto.MembershipSummary
 import com.iksystem.`ik-common`.security.AuthenticatedUser
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.responses.ApiResponse
@@ -18,6 +19,7 @@ import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -107,6 +109,50 @@ class AuthController(
     @PostMapping("/refresh")
     fun refresh(@Valid @RequestBody request: RefreshRequest): ResponseEntity<AuthResponse> {
         val response = authService.refresh(request)
+        return ResponseEntity.ok(response)
+    }
+
+    /**
+     * Lists all organizations the current user belongs to.
+     * Useful for building an org-switcher in the dashboard.
+     */
+    @Operation(summary = "List memberships", description = "Returns all organizations the authenticated user is a member of.")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses(
+        ApiResponse(responseCode = "200", description = "Membership list returned"),
+    )
+    @GetMapping("/memberships")
+    fun listMemberships(
+        @AuthenticationPrincipal auth: AuthenticatedUser,
+    ): ResponseEntity<List<MembershipSummary>> {
+        val memberships = authService.listMemberships(auth.userId)
+        return ResponseEntity.ok(memberships)
+    }
+
+    /**
+     * Switches the user's active organization.
+     * Revokes tokens for the current org and issues new ones scoped to the target org.
+     */
+    @Operation(summary = "Switch organization", description = "Switches active org context. Revokes current org tokens and issues new JWT scoped to target org.")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses(
+        ApiResponse(responseCode = "200", description = "Switched organization, new tokens issued"),
+        ApiResponse(responseCode = "403", description = "Not a member of the requested organization"),
+        ApiResponse(responseCode = "404", description = "User not found"),
+    )
+    @PostMapping("/switch-org")
+    fun switchOrg(
+        @Valid @RequestBody request: SelectOrgRequest,
+        @AuthenticationPrincipal auth: AuthenticatedUser,
+        httpRequest: HttpServletRequest,
+    ): ResponseEntity<AuthResponse> {
+        val response = authService.switchOrg(
+            userId = auth.userId,
+            currentOrgId = auth.requireOrganizationId(),
+            request = request,
+            ipAddress = httpRequest.remoteAddr,
+            userAgent = httpRequest.getHeader("User-Agent"),
+        )
         return ResponseEntity.ok(response)
     }
 

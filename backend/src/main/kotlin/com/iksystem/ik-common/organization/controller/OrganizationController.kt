@@ -49,6 +49,12 @@ class OrganizationController(private val organizationService: OrganizationServic
     ): ResponseEntity<OrganizationResponse> =
         ResponseEntity.status(HttpStatus.CREATED).body(organizationService.create(request, auth.userId))
 
+    /**
+     * Retrieves a single organization by its ID.
+     *
+     * @param id The organization's primary key.
+     * @return The matching [OrganizationResponse].
+     */
     @Operation(summary = "Get organization by ID", description = "Returns a single organization.")
     @ApiResponses(
         ApiResponse(responseCode = "200", description = "Organization found"),
@@ -58,12 +64,22 @@ class OrganizationController(private val organizationService: OrganizationServic
     fun getById(@Parameter(description = "Organization ID") @PathVariable id: Long): ResponseEntity<OrganizationResponse> =
         ResponseEntity.ok(organizationService.getById(id))
 
+    /**
+     * Lists every organization in the system.
+     *
+     * @return A list of all [OrganizationResponse] entries.
+     */
     @Operation(summary = "List all organizations", description = "Returns all organizations in the system.")
     @ApiResponse(responseCode = "200", description = "Organization list returned")
     @GetMapping
     fun listAll(): ResponseEntity<List<OrganizationResponse>> =
         ResponseEntity.ok(organizationService.listAll())
 
+    /**
+     * Deletes an organization and all associated memberships.
+     *
+     * @param id The organization's primary key.
+     */
     @Operation(summary = "Delete organization", description = "Deletes an organization and all its memberships.")
     @ApiResponses(
         ApiResponse(responseCode = "204", description = "Organization deleted"),

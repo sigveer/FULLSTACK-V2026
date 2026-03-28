@@ -151,6 +151,43 @@ class AuthService(
     }
 
     /**
+     * Returns all memberships for the given user.
+     */
+    @Transactional(readOnly = true)
+    fun listMemberships(userId: Long): List<MembershipSummary> {
+        return membershipRepository.findAllByUserId(userId).map { it.toSummary() }
+    }
+
+    /**
+     * Switches the user's active organization. Issues a new JWT + refresh token
+     * scoped to the target org and revokes tokens for the previous org.
+     */
+    @Transactional
+    fun switchOrg(
+        userId: Long,
+        currentOrgId: Long,
+        request: SelectOrgRequest,
+        ipAddress: String?,
+        userAgent: String?,
+    ): AuthResponse {
+        val user = userRepository.findById(userId)
+            .orElseThrow { NotFoundException("User not found") }
+
+        if (!user.active) {
+            throw UnauthorizedException("Account is deactivated")
+        }
+
+        val membership = membershipRepository.findByUserIdAndOrganizationId(userId, request.organizationId)
+            ?: throw ForbiddenException("You are not a member of this organization")
+
+        // Revoke tokens/sessions for the previous org
+        refreshTokenRepository.revokeAllByUserIdAndOrganizationId(userId, currentOrgId)
+        sessionRepository.deactivateAllByUserIdAndOrganizationId(userId, currentOrgId)
+
+        return createAuthResponse(user, membership, ipAddress, userAgent)
+    }
+
+    /**
      * Logs out a user by revoking all their refresh tokens and deactivating all sessions.
      */
     @Transactional

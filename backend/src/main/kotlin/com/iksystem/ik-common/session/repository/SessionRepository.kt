@@ -45,15 +45,23 @@ interface SessionRepository : JpaRepository<Session, Long> {
     fun deactivateAllByUserId(@Param("userId") userId: Long)
 
     /**
-     * Deletes all sessions whose [Session.expiresAt] is in the past.
+     * Deactivates all sessions for a user within a specific organization.
      *
-     * Intended to be called by a scheduled cleanup job.
+     * Used when a user switches orgs or is removed from an organization,
+     * so only sessions scoped to that org are invalidated.
+     *
+     * @param userId The user's primary key.
+     * @param organizationId The organization whose sessions should be deactivated.
      */
-    /** Deactivates all sessions for a user within a specific organization. */
     @Modifying
     @Query("UPDATE Session s SET s.active = false WHERE s.user.id = :userId AND s.organizationId = :organizationId")
     fun deactivateAllByUserIdAndOrganizationId(@Param("userId") userId: Long, @Param("organizationId") organizationId: Long)
 
+    /**
+     * Deletes all sessions whose [Session.expiresAt] is in the past.
+     *
+     * Intended to be called by a scheduled cleanup job.
+     */
     @Modifying
     @Query("DELETE FROM Session s WHERE s.expiresAt < CURRENT_TIMESTAMP")
     fun deleteExpired()

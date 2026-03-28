@@ -48,6 +48,13 @@ class OrganizationService(
         return org.toResponse()
     }
 
+    /**
+     * Retrieves an organization by its primary key.
+     *
+     * @param id The organization ID.
+     * @return The matching [OrganizationResponse].
+     * @throws NotFoundException if no organization with the given [id] exists.
+     */
     @Transactional(readOnly = true)
     fun getById(id: Long): OrganizationResponse {
         val org = organizationRepository.findById(id)
@@ -55,10 +62,21 @@ class OrganizationService(
         return org.toResponse()
     }
 
+    /**
+     * Returns every organization in the system.
+     *
+     * @return A list of all [OrganizationResponse] entries.
+     */
     @Transactional(readOnly = true)
     fun listAll(): List<OrganizationResponse> =
         organizationRepository.findAll().map { it.toResponse() }
 
+    /**
+     * Deletes an organization by its primary key.
+     *
+     * @param id The organization ID.
+     * @throws NotFoundException if no organization with the given [id] exists.
+     */
     @Transactional
     fun delete(id: Long) {
         if (!organizationRepository.existsById(id)) {
@@ -68,6 +86,9 @@ class OrganizationService(
     }
 }
 
+/**
+ * Extension function that maps an [Organization] entity to its API response DTO.
+ */
 fun Organization.toResponse() = OrganizationResponse(
     id = id,
     name = name,

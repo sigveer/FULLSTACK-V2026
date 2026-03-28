@@ -36,6 +36,12 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/v1/users")
 class UserController(private val userService: UserService) {
 
+    /**
+     * Lists all members in the caller's organization.
+     *
+     * @param auth The authenticated user, used to determine the current organization.
+     * @return A list of [MembershipResponse] for every member in the org.
+     */
     @Operation(summary = "List members", description = "Returns all members in the caller's organization. Requires ADMIN or MANAGER.")
     @ApiResponses(
         ApiResponse(responseCode = "200", description = "Member list returned"),
@@ -46,6 +52,13 @@ class UserController(private val userService: UserService) {
     fun listUsers(@AuthenticationPrincipal auth: AuthenticatedUser): ResponseEntity<List<MembershipResponse>> =
         ResponseEntity.ok(userService.listUsers(auth))
 
+    /**
+     * Retrieves a single member's details within the caller's organization.
+     *
+     * @param id The target user's primary key.
+     * @param auth The authenticated user, used to determine the current organization.
+     * @return The matching [MembershipResponse].
+     */
     @Operation(summary = "Get member by user ID", description = "Returns a user's membership in the caller's org. Requires ADMIN or MANAGER.")
     @ApiResponses(
         ApiResponse(responseCode = "200", description = "Member found"),
@@ -60,6 +73,12 @@ class UserController(private val userService: UserService) {
     ): ResponseEntity<MembershipResponse> =
         ResponseEntity.ok(userService.getUser(id, auth))
 
+    /**
+     * Returns the currently authenticated user's own profile.
+     *
+     * @param auth The authenticated user principal.
+     * @return The caller's [UserResponse].
+     */
     @Operation(summary = "Get current user profile", description = "Returns the authenticated user's identity. Any role allowed.")
     @ApiResponses(
         ApiResponse(responseCode = "200", description = "Current user profile returned"),
@@ -69,6 +88,14 @@ class UserController(private val userService: UserService) {
     fun getCurrentUser(@AuthenticationPrincipal auth: AuthenticatedUser): ResponseEntity<UserResponse> =
         ResponseEntity.ok(userService.getCurrentUser(auth))
 
+    /**
+     * Creates a new user and adds them to the caller's organization,
+     * or adds an existing user if the email already exists.
+     *
+     * @param request The user creation payload (email, password, name, phone, role).
+     * @param auth The authenticated user, used to determine the current organization.
+     * @return The newly created [MembershipResponse].
+     */
     @Operation(summary = "Create user and add to org", description = "Creates a user (or adds existing) to the caller's org. Requires ADMIN or MANAGER.")
     @ApiResponses(
         ApiResponse(responseCode = "201", description = "User created/added to organization"),
@@ -84,6 +111,14 @@ class UserController(private val userService: UserService) {
     ): ResponseEntity<MembershipResponse> =
         ResponseEntity.status(HttpStatus.CREATED).body(userService.createUser(request, auth))
 
+    /**
+     * Updates a member's role within the caller's organization.
+     *
+     * @param id The target user's primary key.
+     * @param request The new role to assign.
+     * @param auth The authenticated user, used to determine the current organization.
+     * @return The updated [MembershipResponse].
+     */
     @Operation(summary = "Update member role", description = "Changes a member's role in the caller's org. Requires ADMIN or MANAGER.")
     @ApiResponses(
         ApiResponse(responseCode = "200", description = "Role updated"),
@@ -100,6 +135,14 @@ class UserController(private val userService: UserService) {
     ): ResponseEntity<MembershipResponse> =
         ResponseEntity.ok(userService.updateUserRole(id, request, auth))
 
+    /**
+     * Globally deactivates a user account. The user will not be able to log in
+     * until re-activated. Cannot deactivate yourself.
+     *
+     * @param id The target user's primary key.
+     * @param auth The authenticated user, used for authorization and self-check.
+     * @return The updated [UserResponse] with `active = false`.
+     */
     @Operation(summary = "Deactivate user", description = "Disables a user account globally. Cannot deactivate yourself. Requires ADMIN or MANAGER.")
     @ApiResponses(
         ApiResponse(responseCode = "200", description = "User deactivated"),
@@ -114,6 +157,13 @@ class UserController(private val userService: UserService) {
     ): ResponseEntity<UserResponse> =
         ResponseEntity.ok(userService.deactivateUser(id, auth))
 
+    /**
+     * Re-enables a previously deactivated user account.
+     *
+     * @param id The target user's primary key.
+     * @param auth The authenticated user, used for authorization.
+     * @return The updated [UserResponse] with `active = true`.
+     */
     @Operation(summary = "Activate user", description = "Re-enables a deactivated user. Requires ADMIN or MANAGER.")
     @ApiResponses(
         ApiResponse(responseCode = "200", description = "User activated"),
@@ -128,6 +178,13 @@ class UserController(private val userService: UserService) {
     ): ResponseEntity<UserResponse> =
         ResponseEntity.ok(userService.activateUser(id, auth))
 
+    /**
+     * Kicks a user by revoking all their sessions and refresh tokens,
+     * forcing them to re-authenticate. Cannot kick yourself.
+     *
+     * @param id The target user's primary key.
+     * @param auth The authenticated user, used for authorization and self-check.
+     */
     @Operation(summary = "Kick user", description = "Revokes sessions and tokens — user must re-login. Cannot kick yourself. Requires ADMIN or MANAGER.")
     @ApiResponses(
         ApiResponse(responseCode = "204", description = "User kicked"),
@@ -144,6 +201,13 @@ class UserController(private val userService: UserService) {
         return ResponseEntity.noContent().build()
     }
 
+    /**
+     * Removes a member from the caller's organization. Their user account
+     * remains in the system but they lose access to this org. Cannot remove yourself.
+     *
+     * @param id The target user's primary key.
+     * @param auth The authenticated user, used for authorization and self-check.
+     */
     @Operation(summary = "Remove member", description = "Removes a user from the caller's organization. Cannot remove yourself. Requires ADMIN.")
     @ApiResponses(
         ApiResponse(responseCode = "204", description = "Member removed"),

@@ -62,12 +62,12 @@ class SecurityConfig(private val jwtAuthFilter: JwtAuthFilter) {
 
     /**
      * Configures CORS to allow requests from local dev servers
-     * (`localhost:5173` and `localhost:3000`).
+     * (`localhost:5173`, `localhost:3000` and `localhost:80`).
      */
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
         val config = CorsConfiguration().apply {
-            allowedOrigins = listOf("http://localhost:5173", "http://localhost:3000")
+            allowedOrigins = listOf("http://localhost:5173", "http://localhost:3000", "http://localhost:80")
             allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
             allowedHeaders = listOf("Authorization", "Content-Type")
             allowCredentials = true

@@ -11,6 +11,8 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    networks:
+      - ik-network
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uik_user", "-pik_password"]
       interval: 10s
@@ -21,15 +23,18 @@ services:
   ik-mat:
     build:
       context: ./backend
-      args:
-        MODULE: ik-mat
     container_name: ik_mat
     environment:
       DB_URL: jdbc:mysql://mysql:3306/ik_system?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       DB_USERNAME: ik_user
       DB_PASSWORD: ik_password
+      JWT_SECRET: super-secret-key-that-must-be-at-least-256-bits-long-for-hmac-sha
+      JWT_ACCESS_EXPIRATION: 900000
+      JWT_REFRESH_EXPIRATION: 604800000
     ports:
       - "8081:8080"
+    networks:
+      - ik-network
     depends_on:
       mysql:
         condition: service_healthy
@@ -37,15 +42,18 @@ services:
   ik-alkohol:
     build:
       context: ./backend
-      args:
-        MODULE: ik-alkohol
     container_name: ik_alkohol
     environment:
       DB_URL: jdbc:mysql://mysql:3306/ik_system?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       DB_USERNAME: ik_user
       DB_PASSWORD: ik_password
+      JWT_SECRET: super-secret-key-that-must-be-at-least-256-bits-long-for-hmac-sha
+      JWT_ACCESS_EXPIRATION: 900000
+      JWT_REFRESH_EXPIRATION: 604800000
     ports:
       - "8082:8080"
+    networks:
+      - ik-network
     depends_on:
       mysql:
         condition: service_healthy
@@ -55,9 +63,15 @@ services:
     container_name: ik_frontend
     ports:
       - "80:80"
+    networks:
+      - ik-network
     depends_on:
       - ik-mat
       - ik-alkohol
+
+networks:
+  ik-network:
+    driver: bridge
 
 volumes:
   mysql_data:

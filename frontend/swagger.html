@@ -8,15 +8,22 @@
 <body>
     <div id="swagger-ui"></div>
     <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
     <script>
         SwaggerUIBundle({
             urls: [
                 { url: "/api/mat/v3/api-docs", name: "IK-Mat (Food Compliance)" },
                 { url: "/api/alkohol/v3/api-docs", name: "IK-Alkohol (Alcohol Compliance)" }
             ],
+            "urls.primaryName": "IK-Mat (Food Compliance)",
             dom_id: "#swagger-ui",
             deepLinking: true,
-            presets: [SwaggerUIBundle.presets.apis]
+            presets: [
+                SwaggerUIBundle.presets.apis,
+                SwaggerUIStandalonePreset
+            ],
+            plugins: [SwaggerUIBundle.plugins.DownloadUrl],
+            layout: "StandaloneLayout"
         });
     </script>
 </body>

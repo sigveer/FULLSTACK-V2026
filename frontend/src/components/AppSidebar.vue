@@ -2,10 +2,12 @@
 import {
   LayoutDashboard,
   ClipboardCheck,
+  Thermometer,
   GraduationCap,
+  ScrollText,
   AlertTriangle,
-  LifeBuoy,
-  Send,
+  Users,
+  Settings,
 } from 'lucide-vue-next'
 
 import NavMain from '@/components/NavMain.vue'
@@ -21,55 +23,54 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from '@/components/ui/sidebar'
+import { useAuthStore } from '@/stores/auth'
+import { computed } from 'vue'
 
-const data = {
-  user: {
-    name: 'Leder Ledersen',
-    email: 'leder@everest.no',
-    avatar: '',
+const auth = useAuthStore()
+
+const orgName = computed(() => {
+  const orgId = auth.organizationId
+  const membership = auth.memberships.find((m) => m.organizationId === orgId)
+  return membership?.organizationName ?? 'Organisasjon'
+})
+
+const orgNumber = computed(() => {
+  return auth.organizationId ? `Org. nr: ${auth.organizationId}` : ''
+})
+
+const navMain = [
+  {
+    label: 'OVERSIKT',
+    items: [
+      { title: 'Dashboard', url: '/', icon: LayoutDashboard },
+    ],
   },
-  navMain: [
-    {
-      title: 'Oversikt',
-      url: '#',
-      icon: LayoutDashboard,
-      isActive: true,
-      items: [
-        { title: 'Dashboard', url: '#' },
-      ],
-    },
-    {
-      title: 'IK-Mat',
-      url: '#',
-      icon: ClipboardCheck,
-      items: [
-        { title: 'Sjekklister', url: '#' },
-        { title: 'Temperaturlogg', url: '#' },
-      ],
-    },
-    {
-      title: 'IK-Alkohol',
-      url: '#',
-      icon: GraduationCap,
-      items: [
-        { title: 'Opplaering', url: '#' },
-        { title: 'Bevilling', url: '#' },
-      ],
-    },
-    {
-      title: 'Felles',
-      url: '#',
-      icon: AlertTriangle,
-      items: [
-        { title: 'Avvik', url: '#' },
-      ],
-    },
-  ],
-  navSecondary: [
-    { title: 'Support', url: '#', icon: LifeBuoy },
-    { title: 'Feedback', url: '#', icon: Send },
-  ],
-}
+  {
+    label: 'IK-MAT',
+    items: [
+      { title: 'Sjekklister', url: '/sjekklister', icon: ClipboardCheck },
+      { title: 'Temperaturlogg', url: '/temperatur', icon: Thermometer },
+    ],
+  },
+  {
+    label: 'IK-ALKOHOL',
+    items: [
+      { title: 'Opplæring', url: '/opplaering', icon: GraduationCap },
+      { title: 'Bevilling', url: '/bevilling', icon: ScrollText },
+    ],
+  },
+  {
+    label: 'FELLES',
+    items: [
+      { title: 'Avvik', url: '/avvik', icon: AlertTriangle },
+      { title: 'Ansatte', url: '/ansatte', icon: Users },
+    ],
+  },
+]
+
+const navSecondary = [
+  { title: 'Innstillinger', url: '/innstillinger', icon: Settings },
+]
 </script>
 
 <template>
@@ -77,25 +78,25 @@ const data = {
     <SidebarHeader>
       <SidebarMenu>
         <SidebarMenuItem>
-          <SidebarMenuButton size="lg" as="a" href="#">
+          <SidebarMenuButton size="lg" as="div">
             <div class="sidebar-brand-icon">
-              IK
+              {{ orgName.substring(0, 2).toUpperCase() }}
             </div>
             <div class="sidebar-brand-text">
-              <span class="sidebar-brand-name">IK-Komplett</span>
-              <span class="sidebar-brand-sub">Everest Sushi & Fusion</span>
+              <span class="sidebar-brand-name">{{ orgName }}</span>
+              <span class="sidebar-brand-sub">{{ orgNumber }}</span>
             </div>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>
     </SidebarHeader>
     <SidebarContent>
-      <NavMain :items="data.navMain" />
-      <NavSecondary :items="data.navSecondary" />
+      <NavMain :sections="navMain" />
+      <NavSecondary :items="navSecondary" />
     </SidebarContent>
     <SidebarSeparator />
     <SidebarFooter>
-      <NavUser :user="data.user" />
+      <NavUser />
     </SidebarFooter>
   </Sidebar>
 </template>
@@ -113,6 +114,7 @@ const data = {
   color: hsl(var(--primary-foreground, 0 0% 100%));
   font-weight: 700;
   font-size: 0.75rem;
+  flex-shrink: 0;
 }
 
 .sidebar-brand-text {
@@ -121,11 +123,12 @@ const data = {
   text-align: left;
   font-size: 0.875rem;
   line-height: 1.25;
+  min-width: 0;
 }
 
 .sidebar-brand-name {
   font-weight: 600;
-  color: hsl(var(--primary, 245 43% 52%));
+  color: hsl(var(--sidebar-foreground, 24 10% 10%));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

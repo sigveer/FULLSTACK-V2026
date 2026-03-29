@@ -32,6 +32,7 @@ provide("tooltip", { isOpen, show, hide })
 <style scoped>
 .tooltip-root {
   position: relative;
-  display: inline-block;
+  display: block;
+  width: 100%;
 }
 </style>

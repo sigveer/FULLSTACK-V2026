@@ -77,6 +77,16 @@ const router = createRouter({
       name: 'avvik',
       component: DeviationsView,
     },
+    {
+      path: '/ansatte',
+      name: 'ansatte',
+      component: () => import('@/views/EmployeesView.vue'),
+    },
+    {
+      path: '/innstillinger',
+      name: 'innstillinger',
+      component: () => import('@/views/SettingsView.vue'),
+    },
   ],
 })
 

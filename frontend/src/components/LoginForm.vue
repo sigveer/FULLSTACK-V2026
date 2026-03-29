@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { useLogin } from '@/composables/useAuth'
 import { useRouter } from 'vue-router'
 import { ref } from 'vue'
+import { toast } from 'vue-sonner'
 import { Eye, EyeOff, Mail, Lock } from 'lucide-vue-next'
 import Button from '@/components/ui/button/Button.vue'
 import InputGroup from '@/components/ui/input-group/InputGroup.vue'
@@ -23,8 +24,12 @@ const form = useForm({
     password: '',
   },
   onSubmit: async ({ value }) => {
-    await login.mutateAsync(value)
-    router.push('/select-org')
+    try {
+      await login.mutateAsync(value)
+      router.push('/select-org')
+    } catch {
+      toast.error('Feil e-post eller passord')
+    }
   },
 })
 

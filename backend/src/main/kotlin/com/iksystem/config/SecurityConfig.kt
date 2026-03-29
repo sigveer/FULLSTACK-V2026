@@ -42,11 +42,14 @@ class SecurityConfig(private val jwtAuthFilter: JwtAuthFilter) {
         http
             .cors { it.configurationSource(corsConfigurationSource()) }
             .csrf { it.disable() }
+            .formLogin { it.disable() }
+            .httpBasic { it.disable() }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .authorizeHttpRequests { auth ->
                 auth
                     .requestMatchers("/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/refresh").permitAll()
                     .requestMatchers("/api/v1/auth/select-org", "/api/v1/auth/logout").authenticated()
+                    .requestMatchers("/error").permitAll()
                     .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                     .requestMatchers("/h2-console/**").permitAll()
                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
@@ -67,7 +70,7 @@ class SecurityConfig(private val jwtAuthFilter: JwtAuthFilter) {
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
         val config = CorsConfiguration().apply {
-            allowedOrigins = listOf("http://localhost:5173", "http://localhost:3000", "http://localhost:80")
+            allowedOrigins = listOf("http://localhost:8081","http://localhost:5173", "http://localhost:3000", "http://localhost:80", "http://localhost", "http://localhost:8080")
             allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
             allowedHeaders = listOf("Authorization", "Content-Type")
             allowCredentials = true

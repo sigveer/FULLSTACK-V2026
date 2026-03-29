@@ -1,10 +1,45 @@
 :root {
+  --background: 43 30% 96%;
+  --foreground: 24 10% 15%;
+  --card: 40 25% 98%;
+  --card-foreground: 24 10% 15%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 24 10% 15%;
+  --primary: 245 43% 52%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 40 20% 93%;
+  --secondary-foreground: 24 10% 20%;
+  --muted: 40 18% 93%;
+  --muted-foreground: 24 5% 46%;
+  --accent: 250 40% 95%;
+  --accent-foreground: 245 43% 42%;
+  --destructive: 0 55% 42%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 35 18% 88%;
+  --input: 35 15% 85%;
+  --ring: 245 43% 52%;
+  --chart-1: 142 50% 40%;
+  --chart-2: 245 43% 52%;
+  --chart-3: 35 80% 50%;
+  --chart-4: 0 55% 45%;
+  --chart-5: 180 40% 45%;
+  --radius: 0.75rem;
+
+  --sidebar-background: 40 25% 98%;
+  --sidebar-foreground: 24 10% 25%;
+  --sidebar-primary: 245 43% 52%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 250 40% 95%;
+  --sidebar-accent-foreground: 245 43% 42%;
+  --sidebar-border: 35 18% 90%;
+  --sidebar-ring: 245 43% 52%;
+
+  /* Dashboard token compatibility */
   --app-bg: #ecece8;
   --panel-bg: #f5f5f4;
   --card-bg: #f7f7f7;
-  --border: #d6d7d3;
-  --text-primary: #222327;
-  --text-secondary: #595d62;
+  --text-primary: hsl(var(--foreground));
+  --text-secondary: hsl(var(--muted-foreground));
   --brand: #4f4bcf;
   --brand-soft: #e7e6fb;
   --green: #1a7a4f;
@@ -20,21 +55,28 @@
   --radius-pill: 999px;
 }
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 html,
 body,
 #app {
-  margin: 0;
   min-height: 100%;
-}
-
-body {
-  background: radial-gradient(circle at 20% 10%, #f2f2ef 0%, var(--app-bg) 45%, #e5e5e1 100%);
-  color: var(--text-primary);
-  font-family: 'Manrope', 'Segoe UI', Tahoma, sans-serif;
 }
 
 a {

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import axios from 'axios'
 import { useForm } from '@tanstack/vue-form'
 import { z } from 'zod'
 import { Building2, Mail, Phone, Hash, ChevronDown } from 'lucide-vue-next'
@@ -38,8 +39,8 @@ const form = useForm({
       })
       await selectOrg.mutateAsync({ organizationId: org.id })
       router.push('/')
-    } catch (e: any) {
-      if (e.response?.status === 409) {
+    } catch (e: unknown) {
+      if (axios.isAxiosError(e) && e.response?.status === 409) {
         toast.error('En virksomhet med dette navnet finnes allerede')
       } else {
         toast.error('Kunne ikke opprette virksomhet')

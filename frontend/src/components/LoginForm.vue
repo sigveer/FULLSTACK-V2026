@@ -93,11 +93,20 @@ defineExpose({ loginError: login.error })
       </div>
     </div>
 
-    <Button type="submit" :disabled="login.isPending.value">
-      {{ login.isPending.value ? 'Logger inn...' : 'Logg inn' }}
-    </Button>
+    <div class="buttons">
+      <Button type="submit" :disabled="login.isPending.value">
+        {{ login.isPending.value ? 'Logger inn...' : 'Logg inn' }}
+      </Button>
 
-    <Button variant="link" type="button">Glemt passord?</Button>
+      <div class="signuplink">
+        <p class="subtitle">
+          Har du ikke en konto?
+        </p>
+        <RouterLink to="/signup" custom v-slot="{ navigate }">
+          <Button @click="navigate" role="link" variant="link" type="button">Registrer deg</Button>
+        </RouterLink>
+      </div>
+    </div>
   </form>
 </template>
 
@@ -138,5 +147,23 @@ form > :deep(.btn--link) {
 
 :deep(.input-group--error) {
   border-color: hsl(var(--destructive));
+}
+
+.buttons {
+  gap: 4px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.signuplink {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+
+.subtitle {
+  font-size: 14px;
 }
 </style>

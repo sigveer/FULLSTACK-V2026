@@ -62,7 +62,6 @@ frontend/cypress/videos/
 frontend/cypress/screenshots/
 frontend/__screenshots__/
 frontend/*.timestamp-*-*.mjs
-frontend/package-lock.json
 
 # =========================
 # Backend (Java / Maven)

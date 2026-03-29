@@ -23,6 +23,12 @@ const router = createRouter({
       meta: { public: true },
     },
     {
+      path: '/create-org',
+      name: 'create-org',
+      component: () => import('@/views/createBusinessView.vue'),
+      meta: { public: true },
+    },
+    {
       path: '/',
       name: 'home',
       component: () => import('@/views/DashboardView.vue'),

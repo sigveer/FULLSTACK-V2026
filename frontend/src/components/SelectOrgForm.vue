@@ -31,10 +31,12 @@ defineExpose({ selectOrgError: selectOrg.error })
     <p class="empty-description">
       Du er ikke medlem av noen virksomheter ennå. Opprett en ny virksomhet for å komme i gang.
     </p>
-    <Button type="button">
-      <Plus :size="16" />
-      Opprett virksomhet
-    </Button>
+    <RouterLink to="/create-org" custom v-slot="{ navigate }">
+      <Button @click="navigate" role="link" type="button">
+        <Plus :size="16" />
+        Opprett virksomhet
+      </Button>
+    </RouterLink>
   </div>
 
   <form v-else @submit.prevent="handleSubmit" novalidate>

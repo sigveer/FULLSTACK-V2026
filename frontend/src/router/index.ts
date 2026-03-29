@@ -63,8 +63,8 @@ const router = createRouter({
       meta: { public: true },
     },
     {
-      path: '/opplæring',
-      name: 'opplæring',
+      path: '/opplaering',
+      name: 'opplaering',
       component: TrainingView,
     },
     {

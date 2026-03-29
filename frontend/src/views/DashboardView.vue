@@ -137,33 +137,6 @@ const deviations = [
       <TemperatureLogCard :rows="temperatures" />
       <LatestDeviationCard :deviations="deviations" />
     </div>
-
-      <div class="module-toggle" aria-label="Velg modul">
-        <StatusPill label="IK-Mat" tone="brand" />
-        <StatusPill label="IK-Alkohol" tone="ok" />
-      </div>
-    </section>
-
-    <section class="kpi-grid">
-      <KpiCard
-        :title="checklistKpi.title"
-        :value="checklistKpi.value"
-        :subtitle="checklistKpi.subtitle"
-      />
-
-      <KpiCard
-        v-for="kpi in kpis"
-        :key="kpi.title"
-        :title="kpi.title"
-        :value="kpi.value"
-        :subtitle="kpi.subtitle"
-        :progress="kpi.progress"
-        :highlight="kpi.highlight"
-      />
-    </section>
-
-    <TemperatureLogCard :rows="temperatures" />
-    <LatestDeviationCard :deviations="deviations" />
   </AppLayout>
 </template>
 

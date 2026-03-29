@@ -55,37 +55,40 @@ function getColorIndex(id: number): number {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 16px;
-  border: 2px solid hsl(var(--border));
-  border-radius: 0.5rem;
+  padding: 16px 18px;
+  border: 1.5px solid hsl(var(--border));
+  border-radius: 12px;
   background: hsl(var(--popover));
   cursor: pointer;
-  transition: border-color 150ms ease;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
 }
 
 .org-card:hover {
   border-color: hsl(var(--primary) / 0.4);
+  box-shadow: 0 2px 8px hsl(var(--primary) / 0.06);
 }
 
 .org-card--selected {
   border-color: hsl(var(--primary));
+  background: hsl(var(--primary) / 0.03);
 }
 
 .org-card__left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .org-card__logo {
-  width: 40px;
-  height: 40px;
-  border-radius: 0.375rem;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.875rem;
+  font-size: 0.85rem;
   font-weight: 700;
+  letter-spacing: 0.02em;
   flex-shrink: 0;
 }
 
@@ -113,10 +116,11 @@ function getColorIndex(id: number): number {
 }
 
 .org-card__role {
-  padding: 4px 10px;
+  padding: 5px 12px;
   border-radius: 999px;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
+  letter-spacing: 0.02em;
   white-space: nowrap;
   flex-shrink: 0;
 }

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { useForm } from '@tanstack/vue-form'
 import { z } from 'zod'
-import { useLogin } from '@/composables/useAuth'
+import { useLogin, useSelectOrg } from '@/composables/useAuth'
 import { useRouter } from 'vue-router'
 import { ref } from 'vue'
 import { Eye, EyeOff, Mail, Lock } from 'lucide-vue-next'
+import { useAuthStore } from '@/stores/auth'
 import Button from '@/components/ui/button/Button.vue'
 import InputGroup from '@/components/ui/input-group/InputGroup.vue'
 import InputGroupAddon from '@/components/ui/input-group/InputGroupAddon.vue'
@@ -12,7 +13,9 @@ import InputGroupInput from '@/components/ui/input-group/InputGroupInput.vue'
 import InputGroupButton from '@/components/ui/input-group/InputGroupButton.vue'
 
 const router = useRouter()
+const auth = useAuthStore()
 const login = useLogin()
+const selectOrg = useSelectOrg()
 const showPassword = ref(false)
 
 const emailSchema = z.string().min(1, 'E-post er påkrevd').email('Ugyldig e-postadresse')
@@ -24,7 +27,15 @@ const form = useForm({
   },
   onSubmit: async ({ value }) => {
     await login.mutateAsync(value)
-    router.push('/select-org')
+
+    const firstMembership = auth.memberships[0]
+    if (!firstMembership) {
+      router.push('/create-org')
+      return
+    }
+
+    await selectOrg.mutateAsync({ organizationId: firstMembership.organizationId })
+    router.push('/')
   },
 })
 

@@ -33,12 +33,18 @@ const router = createRouter({
     {
       path: '/dashboard',
       name: 'dashboard',
-      component: DashboardView,
+      redirect: '/',
     },
     {
       path: '/',
       name: 'home',
       component: DashboardView,
+    },
+    {
+      path: '/create-org',
+      name: 'create-org',
+      component: () => import('@/views/createBusinessView.vue'),
+      meta: { public: true },
     },
     {
       path: '/sjekklister',

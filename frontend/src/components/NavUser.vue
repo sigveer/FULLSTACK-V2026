@@ -41,10 +41,6 @@ const initials = computed(() => {
   return parts[0]?.[0]?.toUpperCase() ?? '?'
 })
 
-const otherOrgs = computed(() =>
-  auth.memberships.filter((m) => m.organizationId !== auth.organizationId),
-)
-
 function handleSwitchOrg(organizationId: number) {
   switchOrg({ organizationId })
 }

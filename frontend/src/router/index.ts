@@ -1,4 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import DashboardView from '@/views/DashboardView.vue'
+import LoginView from '@/views/LoginView.vue'
+import BusinessView from '@/views/BusinessView.vue'
+import ChecklistView from '@/views/ChecklistView.vue'
+import TemperatureView from '@/views/TemperatureView.vue'
+import DeviationsView from '@/views/DeviationsView.vue'
+import TrainingView from '@/views/TrainingView.vue'
+import AllowanceView from '@/views/AllowanceView.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
@@ -13,19 +21,55 @@ const router = createRouter({
     {
       path: '/login',
       name: 'login',
-      component: () => import('@/views/loginView.vue'),
+      component: LoginView,
       meta: { public: true },
     },
     {
       path: '/select-org',
       name: 'select-org',
-      component: () => import('@/views/businessView.vue'),
+      component: BusinessView,
       meta: { public: true },
+    },
+    {
+      path: '/dashboard',
+      name: 'dashboard',
+      component: DashboardView,
     },
     {
       path: '/',
       name: 'home',
-      component: () => import('@/views/DashboardView.vue'),
+      component: DashboardView,
+    },
+    {
+      path: '/sjekklister',
+      name: 'sjekklister',
+      component: ChecklistView,
+    },
+    {
+      path: '/temperatur',
+      name: 'temperatur',
+      component: TemperatureView,
+    },
+    {
+      path: '/business',
+      name: 'business',
+      component: BusinessView,
+      meta: { public: true },
+    },
+    {
+      path: '/opplaering',
+      name: 'opplaering',
+      component: TrainingView,
+    },
+    {
+      path: '/bevilling',
+      name: 'bevilling',
+      component: AllowanceView,
+    },
+    {
+      path: '/avvik',
+      name: 'avvik',
+      component: DeviationsView,
     },
   ],
 })

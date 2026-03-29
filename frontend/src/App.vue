@@ -9,5 +9,3 @@ init()
   <div v-if="isLoading">Loading...</div>
   <RouterView v-else />
 </template>
-
-<style scoped></style>

@@ -11,7 +11,9 @@ const props = withDefaults(defineProps<{
   align: "center",
 })
 
-const { isOpen } = inject("tooltip") as any
+import type { Ref } from "vue"
+
+const { isOpen } = inject("tooltip") as { isOpen: Ref<boolean> }
 </script>
 
 <template>

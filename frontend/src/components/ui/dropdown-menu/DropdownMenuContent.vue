@@ -12,7 +12,9 @@ const props = withDefaults(defineProps<{
   sideOffset: 4,
 })
 
-const { isOpen, close } = inject("dropdown-menu") as any
+import type { Ref } from "vue"
+
+const { isOpen, close } = inject("dropdown-menu") as { isOpen: Ref<boolean>; close: () => void }
 const contentRef = ref<HTMLElement | null>(null)
 
 function onClickOutside(e: MouseEvent) {

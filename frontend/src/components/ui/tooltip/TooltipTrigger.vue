@@ -5,7 +5,7 @@ defineProps<{
   asChild?: boolean
 }>()
 
-const { show, hide } = inject("tooltip") as any
+const { show, hide } = inject("tooltip") as { show: () => void; hide: () => void }
 </script>
 
 <template>

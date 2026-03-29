@@ -6,7 +6,9 @@ defineProps<{
   class?: string
 }>()
 
-const { openSub, closeSub, isSubOpen } = inject("dropdown-sub") as any
+import type { Ref } from "vue"
+
+const { openSub, closeSub, isSubOpen } = inject("dropdown-sub") as { openSub: () => void; closeSub: () => void; isSubOpen: Ref<boolean> }
 
 function handleMouseEnter() {
   openSub()

@@ -7,7 +7,7 @@ const props = defineProps<{
   class?: string
 }>()
 
-const { close } = inject("alert-dialog") as any
+const { close } = inject("alert-dialog") as { close: () => void }
 </script>
 
 <template>

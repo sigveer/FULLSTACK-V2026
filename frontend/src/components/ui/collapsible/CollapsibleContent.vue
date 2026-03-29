@@ -5,7 +5,9 @@ const props = defineProps<{
   class?: string
 }>()
 
-const { isOpen } = inject("collapsible") as any
+import type { Ref } from "vue"
+
+const { isOpen } = inject("collapsible") as { isOpen: Ref<boolean> }
 const contentRef = ref<HTMLElement | null>(null)
 const height = ref("0px")
 

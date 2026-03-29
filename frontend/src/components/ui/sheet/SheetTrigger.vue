@@ -5,7 +5,9 @@ defineProps<{
   asChild?: boolean
 }>()
 
-const { isOpen, setOpen } = inject("sheet") as any
+import type { Ref } from "vue"
+
+const { isOpen, setOpen } = inject("sheet") as { isOpen: Ref<boolean>; setOpen: (v: boolean) => void }
 
 function toggle() {
   setOpen(!isOpen.value)

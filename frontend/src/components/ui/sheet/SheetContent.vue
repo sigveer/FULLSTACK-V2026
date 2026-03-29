@@ -11,7 +11,9 @@ const props = withDefaults(defineProps<{
   side: "right",
 })
 
-const { isOpen, close } = inject("sheet") as any
+import type { Ref } from "vue"
+
+const { isOpen, close } = inject("sheet") as { isOpen: Ref<boolean>; close: () => void }
 
 function onKeydown(e: KeyboardEvent) {
   if (e.key === "Escape") close()

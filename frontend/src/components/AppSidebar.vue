@@ -2,9 +2,7 @@
 import {
   LayoutDashboard,
   ClipboardCheck,
-  Thermometer,
   GraduationCap,
-  Award,
   AlertTriangle,
   LifeBuoy,
   Send,

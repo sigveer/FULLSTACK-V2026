@@ -8,7 +8,9 @@ const props = withDefaults(defineProps<{
   align: "center",
 })
 
-const { isOpen, close } = inject("popover") as any
+import type { Ref } from "vue"
+
+const { isOpen, close } = inject("popover") as { isOpen: Ref<boolean>; close: () => void }
 const contentRef = ref<HTMLElement | null>(null)
 
 function onClickOutside(e: MouseEvent) {

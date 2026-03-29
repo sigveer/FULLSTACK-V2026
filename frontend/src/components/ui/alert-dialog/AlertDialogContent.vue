@@ -5,7 +5,9 @@ const props = defineProps<{
   class?: string
 }>()
 
-const { isOpen } = inject("alert-dialog") as any
+import type { Ref } from "vue"
+
+const { isOpen } = inject("alert-dialog") as { isOpen: Ref<boolean> }
 </script>
 
 <template>

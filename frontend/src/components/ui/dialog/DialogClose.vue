@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { inject } from "vue"
 
-const { close } = inject("dialog") as any
+const { close } = inject("dialog") as { close: () => void }
 </script>
 
 <template>

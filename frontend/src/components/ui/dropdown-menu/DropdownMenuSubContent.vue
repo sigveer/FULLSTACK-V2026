@@ -5,7 +5,9 @@ defineProps<{
   class?: string
 }>()
 
-const { isSubOpen, closeSub } = inject("dropdown-sub") as any
+import type { Ref } from "vue"
+
+const { isSubOpen, closeSub } = inject("dropdown-sub") as { isSubOpen: Ref<boolean>; closeSub: () => void }
 const contentRef = ref<HTMLElement | null>(null)
 
 function onClickOutside(e: MouseEvent) {

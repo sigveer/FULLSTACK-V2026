@@ -5,7 +5,9 @@ defineProps<{
   asChild?: boolean
 }>()
 
-const { toggle, isOpen } = inject("collapsible") as any
+import type { Ref } from "vue"
+
+const { toggle, isOpen } = inject("collapsible") as { toggle: () => void; isOpen: Ref<boolean> }
 </script>
 
 <template>

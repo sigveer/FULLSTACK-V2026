@@ -5,7 +5,9 @@ defineProps<{
   asChild?: boolean
 }>()
 
-const { toggle, triggerRef } = inject("popover") as any
+import type { Ref } from "vue"
+
+const { toggle, triggerRef } = inject("popover") as { toggle: () => void; triggerRef: Ref<HTMLElement | null> }
 const elRef = ref<HTMLElement | null>(null)
 
 onMounted(() => {

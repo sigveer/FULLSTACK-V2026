@@ -7,7 +7,9 @@ const props = defineProps<{
   class?: string
 }>()
 
-const { isOpen, toggle } = inject("select--------------------") as any
+import type { Ref } from "vue"
+
+const { isOpen, toggle } = inject("select--------------------") as { isOpen: Ref<boolean>; toggle: () => void }
 </script>
 
 <template>

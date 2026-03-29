@@ -6,7 +6,9 @@ const props = defineProps<{
   class?: string
 }>()
 
-const { isOpen, close } = inject("dialog") as any
+import type { Ref } from "vue"
+
+const { isOpen, close } = inject("dialog") as { isOpen: Ref<boolean>; close: () => void }
 
 function onKeydown(e: KeyboardEvent) {
   if (e.key === "Escape") close()

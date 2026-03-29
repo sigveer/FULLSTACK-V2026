@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { inject, ref, onMounted, onBeforeUnmount, nextTick, watch } from "vue"
-import { Teleport } from "vue"
+import { inject, ref, onBeforeUnmount, nextTick, watch } from "vue"
+import type { Ref } from "vue"
 
 const props = defineProps<{
   class?: string
 }>()
 
-const { isOpen, close } = inject("select--------------------") as any
+const { isOpen, close } = inject("select--------------------") as { isOpen: Ref<boolean>; close: () => void }
 
 const contentRef = ref<HTMLElement | null>(null)
 

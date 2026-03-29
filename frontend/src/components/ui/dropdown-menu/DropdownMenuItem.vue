@@ -7,7 +7,7 @@ const props = defineProps<{
   disabled?: boolean
 }>()
 
-const { close } = inject("dropdown-menu") as any
+const { close } = inject("dropdown-menu") as { close: () => void }
 
 function handleClick(e: MouseEvent) {
   if (props.disabled) {

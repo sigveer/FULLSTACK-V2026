@@ -52,7 +52,7 @@ const data = {
       url: '#',
       icon: GraduationCap,
       items: [
-        { title: 'Opplaering', url: '#' },
+        { title: 'Opplæring', url: '#' },
         { title: 'Bevilling', url: '#' },
       ],
     },

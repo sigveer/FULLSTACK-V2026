@@ -38,7 +38,7 @@ const temperatures = [
     status: 'OK' as const,
   },
   {
-    location: 'Kjoeleskap 2',
+    location: 'Kjøleskap 2',
     temperature: '6.1 C',
     limit: '0-4 C',
     status: 'Avvik' as const,

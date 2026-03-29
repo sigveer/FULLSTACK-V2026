@@ -3,5 +3,5 @@ import AppLayout from '@/components/layout/AppLayout.vue'
 </script>
 
 <template>
-  <AppLayout active-menu-item="bevilling" />
+  <AppLayout active-menu-item="Bevilling" />
 </template>

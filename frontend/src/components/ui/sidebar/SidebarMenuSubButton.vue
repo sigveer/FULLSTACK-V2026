@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import type { Component } from "vue"
+
 const props = withDefaults(defineProps<{
-  as?: string
+  as?: string | Component
   size?: "sm" | "md"
   isActive?: boolean
   class?: string

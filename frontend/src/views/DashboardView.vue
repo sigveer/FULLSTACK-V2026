@@ -5,6 +5,8 @@ import LatestDeviationCard from '@/components/dashboard/LatestDeviationCard.vue'
 import TemperatureLogCard from '@/components/dashboard/TemperatureLogCard.vue'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import StatusPill from '@/components/ui/StatusPill.vue'
+import { Separator } from '@/components/ui/separator'
+import { SidebarTrigger } from '@/components/ui/sidebar'
 import { useChecklistStatsQuery } from '@/composables/useChecklists'
 
 const checklistStatsQuery = useChecklistStatsQuery()
@@ -98,12 +100,43 @@ const deviations = [
 </script>
 
 <template>
-  <AppLayout active-menu-item="Dashboard">
-    <section class="dashboard-header">
-      <div>
-        <h1>Oversikt</h1>
-        <p>Fredag 20. mars 2026</p>
+  <AppLayout>
+    <header class="page-header">
+      <div class="page-header-inner">
+        <SidebarTrigger />
+        <Separator orientation="vertical" class="header-separator" />
+        <span class="page-title">Dashboard</span>
       </div>
+    </header>
+
+    <div class="page-content">
+      <section class="dashboard-header">
+        <div>
+          <h1>Oversikt</h1>
+          <p>Fredag 20. mars 2026</p>
+        </div>
+
+        <div class="module-toggle" aria-label="Velg modul">
+          <StatusPill label="IK-Mat" tone="brand" />
+          <StatusPill label="IK-Alkohol" tone="ok" />
+        </div>
+      </section>
+
+      <section class="kpi-grid">
+        <KpiCard
+          v-for="kpi in kpis"
+          :key="kpi.title"
+          :title="kpi.title"
+          :value="kpi.value"
+          :subtitle="kpi.subtitle"
+          :progress="kpi.progress"
+          :highlight="kpi.highlight"
+        />
+      </section>
+
+      <TemperatureLogCard :rows="temperatures" />
+      <LatestDeviationCard :deviations="deviations" />
+    </div>
 
       <div class="module-toggle" aria-label="Velg modul">
         <StatusPill label="IK-Mat" tone="brand" />
@@ -135,6 +168,40 @@ const deviations = [
 </template>
 
 <style scoped>
+.page-header {
+  display: flex;
+  height: 4rem;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.page-header-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 1rem;
+}
+
+.header-separator {
+  height: 1rem !important;
+  width: 1px !important;
+  margin-right: 0.5rem;
+}
+
+.page-title {
+  font-weight: 500;
+  color: hsl(var(--sidebar-primary, 245 43% 52%));
+}
+
+.page-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0 1rem 1rem;
+}
+
 .dashboard-header {
   display: flex;
   align-items: flex-start;

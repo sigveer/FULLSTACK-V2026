@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertTriangle } from 'lucide-vue-next'
+import { Settings } from 'lucide-vue-next'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
@@ -11,7 +11,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar'
       <div class="page-header-inner">
         <SidebarTrigger />
         <Separator orientation="vertical" class="header-separator" />
-        <span class="page-title">Avvik</span>
+        <span class="page-title">Innstillinger</span>
       </div>
     </header>
 
@@ -20,11 +20,11 @@ import { SidebarTrigger } from '@/components/ui/sidebar'
         <div class="empty-state-bg" />
         <div class="empty-state-inner">
           <div class="empty-state-icon">
-            <AlertTriangle :stroke-width="1.5" />
+            <Settings :stroke-width="1.5" />
           </div>
           <div class="empty-state-text">
             <h3>Kommer snart</h3>
-            <p>Avvikshåndtering er under utvikling. Her vil du snart kunne registrere og følge opp avvik.</p>
+            <p>Innstillinger er under utvikling. Her vil du snart kunne konfigurere systemet.</p>
           </div>
         </div>
       </div>

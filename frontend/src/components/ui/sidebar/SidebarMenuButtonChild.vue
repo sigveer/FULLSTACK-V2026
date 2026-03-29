@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import type { Component } from "vue"
 import { useSidebar } from "./utils"
 
 export interface SidebarMenuButtonProps {
-  as?: string
+  as?: string | Component
   variant?: "default" | "outline"
   size?: "default" | "sm" | "lg"
   isActive?: boolean

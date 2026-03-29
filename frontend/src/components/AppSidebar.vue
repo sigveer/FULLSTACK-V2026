@@ -71,6 +71,48 @@ const navMain = [
 const navSecondary = [
   { title: 'Innstillinger', url: '/innstillinger', icon: Settings },
 ]
+  navMain: [
+    {
+      title: 'Oversikt',
+      url: '#',
+      icon: LayoutDashboard,
+      isActive: true,
+      items: [
+        { title: 'Dashboard', url: '#' },
+      ],
+    },
+    {
+      title: 'IK-Mat',
+      url: '#',
+      icon: ClipboardCheck,
+      items: [
+        { title: 'Sjekklister', url: '#' },
+        { title: 'Temperaturlogg', url: '#' },
+      ],
+    },
+    {
+      title: 'IK-Alkohol',
+      url: '#',
+      icon: GraduationCap,
+      items: [
+        { title: 'Opplæring', url: '#' },
+        { title: 'Bevilling', url: '#' },
+      ],
+    },
+    {
+      title: 'Felles',
+      url: '#',
+      icon: AlertTriangle,
+      items: [
+        { title: 'Avvik', url: '#' },
+      ],
+    },
+  ],
+  navSecondary: [
+    { title: 'Support', url: '#', icon: LifeBuoy },
+    { title: 'Feedback', url: '#', icon: Send },
+  ],
+}
 </script>
 
 <template>

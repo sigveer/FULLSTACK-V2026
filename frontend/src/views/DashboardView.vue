@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import KpiCard from '@/components/dashboard/KpiCard.vue'
 import LatestDeviationCard from '@/components/dashboard/LatestDeviationCard.vue'
 import TemperatureLogCard from '@/components/dashboard/TemperatureLogCard.vue'
@@ -6,13 +7,30 @@ import AppLayout from '@/components/layout/AppLayout.vue'
 import StatusPill from '@/components/ui/StatusPill.vue'
 import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
+import { useChecklistStatsQuery } from '@/composables/useChecklists'
 
-const kpis = [
-  {
+const checklistStatsQuery = useChecklistStatsQuery()
+
+const checklistKpi = computed(() => {
+  const activeChecklists = checklistStatsQuery.data.value?.activeChecklists ?? 0
+
+  return {
     title: 'Sjekklister i dag',
-    value: '3/5',
-    progress: { current: 3, total: 5 },
-  },
+    value: String(activeChecklists),
+    subtitle: 'Aktive sjekklister',
+  }
+})
+
+const kpis: Array<{
+  title: string
+  value: string
+  subtitle?: string
+  highlight?: 'default' | 'danger' | 'success'
+  progress?: {
+    current: number
+    total: number
+  }
+}> = [
   {
     title: 'Temp.avvik',
     value: '2',
@@ -40,7 +58,7 @@ const temperatures = [
     status: 'OK' as const,
   },
   {
-    location: 'Kjoeleskap 2',
+    location: 'Kjøleskap 2',
     temperature: '6.1 C',
     limit: '0-4 C',
     status: 'Avvik' as const,
@@ -119,6 +137,33 @@ const deviations = [
       <TemperatureLogCard :rows="temperatures" />
       <LatestDeviationCard :deviations="deviations" />
     </div>
+
+      <div class="module-toggle" aria-label="Velg modul">
+        <StatusPill label="IK-Mat" tone="brand" />
+        <StatusPill label="IK-Alkohol" tone="ok" />
+      </div>
+    </section>
+
+    <section class="kpi-grid">
+      <KpiCard
+        :title="checklistKpi.title"
+        :value="checklistKpi.value"
+        :subtitle="checklistKpi.subtitle"
+      />
+
+      <KpiCard
+        v-for="kpi in kpis"
+        :key="kpi.title"
+        :title="kpi.title"
+        :value="kpi.value"
+        :subtitle="kpi.subtitle"
+        :progress="kpi.progress"
+        :highlight="kpi.highlight"
+      />
+    </section>
+
+    <TemperatureLogCard :rows="temperatures" />
+    <LatestDeviationCard :deviations="deviations" />
   </AppLayout>
 </template>
 

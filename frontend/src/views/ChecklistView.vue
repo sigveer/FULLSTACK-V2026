@@ -1,7 +1,353 @@
 <script setup lang="ts">
+import axios from 'axios'
+import { computed, ref } from 'vue'
+import { toast } from 'vue-sonner'
 import AppLayout from '@/components/layout/AppLayout.vue'
+import Button from '@/components/ui/button/Button.vue'
+import StatusPill from '@/components/ui/StatusPill.vue'
+import ChecklistCard from '@/components/checklists/ChecklistCard.vue'
+import ChecklistFormDialog from '@/components/checklists/ChecklistFormDialog.vue'
+import ChecklistItemFormDialog from '@/components/checklists/ChecklistItemFormDialog.vue'
+import {
+  useChecklistsQuery,
+  useCreateChecklistItemMutation,
+  useCreateChecklistMutation,
+  useDeleteChecklistItemMutation,
+  useDeleteChecklistMutation,
+  useSetChecklistCompletionMutation,
+  useUpdateChecklistItemMutation,
+  useUpdateChecklistMutation,
+} from '@/composables/useChecklists'
+import { useAuthStore } from '@/stores/auth'
+import type {
+  Checklist,
+  ChecklistFrequency,
+  ChecklistItem,
+  CreateChecklistItemRequest,
+  CreateChecklistRequest,
+  UpdateChecklistItemRequest,
+  UpdateChecklistRequest,
+} from '@/types/checklist'
+
+type FrequencyFilter = 'ALL' | ChecklistFrequency
+
+const auth = useAuthStore()
+
+const checklistQuery = useChecklistsQuery()
+const createChecklist = useCreateChecklistMutation()
+const updateChecklist = useUpdateChecklistMutation()
+const deleteChecklist = useDeleteChecklistMutation()
+const createItem = useCreateChecklistItemMutation()
+const updateItem = useUpdateChecklistItemMutation()
+const deleteItem = useDeleteChecklistItemMutation()
+const setChecklistCompletion = useSetChecklistCompletionMutation()
+
+const activeFilter = ref<FrequencyFilter>('ALL')
+
+const checklistDialogOpen = ref(false)
+const checklistDialogMode = ref<'create' | 'edit'>('create')
+const activeChecklist = ref<Checklist | null>(null)
+
+const itemDialogOpen = ref(false)
+const itemDialogMode = ref<'create' | 'edit'>('create')
+const activeItemChecklist = ref<Checklist | null>(null)
+const activeItem = ref<ChecklistItem | null>(null)
+
+const canManage = computed(() => auth.role === 'ADMIN' || auth.role === 'MANAGER')
+const canComplete = computed(() => !!auth.role)
+
+const checklists = computed(() => checklistQuery.data.value ?? [])
+
+const filteredChecklists = computed(() => {
+  if (activeFilter.value === 'ALL') {
+    return checklists.value
+  }
+  return checklists.value.filter((entry) => entry.frequency === activeFilter.value)
+})
+
+const filters: Array<{ label: string; value: FrequencyFilter; tone: 'brand' | 'ok' | 'warning' | 'neutral' }> = [
+  { label: 'Alle', value: 'ALL', tone: 'brand' },
+  { label: 'Daglig', value: 'DAILY', tone: 'brand' },
+  { label: 'Ukentlig', value: 'WEEKLY', tone: 'ok' },
+  { label: 'Månedlig', value: 'MONTHLY', tone: 'warning' },
+  { label: 'Årlig', value: 'YEARLY', tone: 'neutral' },
+]
+
+function openCreateChecklistDialog() {
+  checklistDialogMode.value = 'create'
+  activeChecklist.value = null
+  checklistDialogOpen.value = true
+}
+
+function openEditChecklistDialog(checklist: Checklist) {
+  checklistDialogMode.value = 'edit'
+  activeChecklist.value = checklist
+  checklistDialogOpen.value = true
+}
+
+async function handleCreateChecklist(payload: CreateChecklistRequest) {
+  try {
+    await createChecklist.mutateAsync(payload)
+    checklistDialogOpen.value = false
+    toast.success('Sjekkliste opprettet')
+  } catch (error) {
+    handleMutationError(error, 'Kunne ikke opprette sjekkliste')
+  }
+}
+
+async function handleUpdateChecklist(payload: { checklistId: number; data: UpdateChecklistRequest }) {
+  try {
+    await updateChecklist.mutateAsync({
+      checklistId: payload.checklistId,
+      payload: payload.data,
+    })
+    checklistDialogOpen.value = false
+    toast.success('Sjekkliste oppdatert')
+  } catch (error) {
+    handleMutationError(error, 'Kunne ikke oppdatere sjekkliste')
+  }
+}
+
+async function handleDeleteChecklist(checklistId: number) {
+  try {
+    await deleteChecklist.mutateAsync(checklistId)
+    toast.success('Sjekkliste slettet')
+  } catch (error) {
+    handleMutationError(error, 'Kunne ikke slette sjekkliste')
+  }
+}
+
+function openCreateItemDialog(checklist: Checklist) {
+  itemDialogMode.value = 'create'
+  activeItemChecklist.value = checklist
+  activeItem.value = null
+  itemDialogOpen.value = true
+}
+
+function openEditItemDialog(payload: { checklist: Checklist; item: ChecklistItem }) {
+  itemDialogMode.value = 'edit'
+  activeItemChecklist.value = payload.checklist
+  activeItem.value = payload.item
+  itemDialogOpen.value = true
+}
+
+async function handleCreateItem(payload: { checklistId: number; data: CreateChecklistItemRequest }) {
+  try {
+    await createItem.mutateAsync({
+      checklistId: payload.checklistId,
+      payload: payload.data,
+    })
+    itemDialogOpen.value = false
+    toast.success('Oppgave lagt til')
+  } catch (error) {
+    handleMutationError(error, 'Kunne ikke legge til oppgave')
+  }
+}
+
+async function handleUpdateItem(payload: {
+  checklistId: number
+  itemId: number
+  data: UpdateChecklistItemRequest
+}) {
+  try {
+    await updateItem.mutateAsync({
+      checklistId: payload.checklistId,
+      itemId: payload.itemId,
+      payload: payload.data,
+    })
+    itemDialogOpen.value = false
+    toast.success('Oppgave oppdatert')
+  } catch (error) {
+    handleMutationError(error, 'Kunne ikke oppdatere oppgave')
+  }
+}
+
+async function handleDeleteItem(payload: { checklistId: number; itemId: number }) {
+  try {
+    await deleteItem.mutateAsync(payload)
+    toast.success('Oppgave slettet')
+  } catch (error) {
+    handleMutationError(error, 'Kunne ikke slette oppgave')
+  }
+}
+
+async function handleToggleItemCompleted(payload: { checklistId: number; itemId: number; completed: boolean }) {
+  try {
+    await updateItem.mutateAsync({
+      checklistId: payload.checklistId,
+      itemId: payload.itemId,
+      payload: {
+        completed: payload.completed,
+      },
+    })
+  } catch (error) {
+    handleMutationError(error, 'Kunne ikke oppdatere oppgavestatus')
+  }
+}
+
+async function handleToggleChecklistCompleted(payload: { checklistId: number; completed: boolean }) {
+  try {
+    await setChecklistCompletion.mutateAsync(payload)
+  } catch (error) {
+    handleMutationError(error, 'Kunne ikke oppdatere sjekklistestatus')
+  }
+}
+
+function handleMutationError(error: unknown, fallbackMessage: string) {
+  if (axios.isAxiosError(error)) {
+    const message = error.response?.data?.error?.message
+    if (typeof message === 'string' && message.trim().length > 0) {
+      toast.error(message)
+      return
+    }
+  }
+
+  toast.error(fallbackMessage)
+}
 </script>
 
 <template>
-  <AppLayout active-menu-item="Sjekklister" />
+  <AppLayout active-menu-item="Sjekklister">
+    <section class="header-row">
+      <div>
+        <h1>Sjekklister</h1>
+        <p>Dynamiske rutiner for daglig drift og internkontroll.</p>
+      </div>
+
+      <Button v-if="canManage" @click="openCreateChecklistDialog">
+        + Ny sjekkliste
+      </Button>
+    </section>
+
+    <section class="filters-row" aria-label="Filtrer frekvens">
+      <button
+        v-for="filter in filters"
+        :key="filter.value"
+        class="filter-button"
+        :class="{ 'filter-button--active': activeFilter === filter.value }"
+        type="button"
+        @click="activeFilter = filter.value"
+      >
+        <StatusPill :label="filter.label" :tone="filter.tone" />
+      </button>
+    </section>
+
+    <section class="list-section">
+      <p v-if="checklistQuery.isLoading.value" class="state-line">Laster sjekklister...</p>
+      <p v-else-if="checklistQuery.isError.value" class="state-line state-line--danger">
+        Kunne ikke hente sjekklister.
+      </p>
+      <p v-else-if="filteredChecklists.length === 0" class="state-line">
+        Ingen sjekklister i valgt frekvens ennå.
+      </p>
+
+      <div v-else class="checklist-grid">
+        <ChecklistCard
+          v-for="checklist in filteredChecklists"
+          :key="checklist.id"
+          :checklist="checklist"
+          :can-manage="canManage"
+          :can-complete="canComplete"
+          @edit-checklist="openEditChecklistDialog"
+          @delete-checklist="handleDeleteChecklist"
+          @new-item="openCreateItemDialog"
+          @edit-item="openEditItemDialog"
+          @delete-item="handleDeleteItem"
+          @toggle-item-completed="handleToggleItemCompleted"
+          @toggle-checklist-completed="handleToggleChecklistCompleted"
+        />
+      </div>
+    </section>
+
+    <ChecklistFormDialog
+      v-model:open="checklistDialogOpen"
+      :mode="checklistDialogMode"
+      :initial-checklist="activeChecklist"
+      :submitting="createChecklist.isPending.value || updateChecklist.isPending.value"
+      @create="handleCreateChecklist"
+      @update="handleUpdateChecklist"
+    />
+
+    <ChecklistItemFormDialog
+      v-model:open="itemDialogOpen"
+      :mode="itemDialogMode"
+      :checklist="activeItemChecklist"
+      :initial-item="activeItem"
+      :submitting="createItem.isPending.value || updateItem.isPending.value"
+      @create="handleCreateItem"
+      @update="handleUpdateItem"
+    />
+  </AppLayout>
 </template>
+
+<style scoped>
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 2.4rem;
+  letter-spacing: -0.02em;
+}
+
+.header-row p {
+  margin-top: 6px;
+  color: var(--text-secondary);
+}
+
+.filters-row {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filter-button {
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.filter-button--active {
+  border-color: #cdccc8;
+  box-shadow: inset 0 0 0 1px #e0dfdb;
+}
+
+.list-section {
+  margin-top: 18px;
+}
+
+.state-line {
+  padding: 14px;
+  border-radius: var(--radius-md);
+  background: #ececea;
+  color: #4b5056;
+}
+
+.state-line--danger {
+  background: #f6e5e5;
+  color: #913333;
+}
+
+.checklist-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (max-width: 760px) {
+  .header-row {
+    flex-direction: column;
+  }
+
+  h1 {
+    font-size: 2rem;
+  }
+}
+</style>

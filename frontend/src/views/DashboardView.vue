@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import KpiCard from '@/components/dashboard/KpiCard.vue'
 import LatestDeviationCard from '@/components/dashboard/LatestDeviationCard.vue'
 import TemperatureLogCard from '@/components/dashboard/TemperatureLogCard.vue'
@@ -7,19 +6,6 @@ import AppLayout from '@/components/layout/AppLayout.vue'
 import StatusPill from '@/components/ui/StatusPill.vue'
 import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
-import { useChecklistStatsQuery } from '@/composables/useChecklists'
-
-const checklistStatsQuery = useChecklistStatsQuery()
-
-const checklistKpi = computed(() => {
-  const activeChecklists = checklistStatsQuery.data.value?.activeChecklists ?? 0
-
-  return {
-    title: 'Sjekklister i dag',
-    value: String(activeChecklists),
-    subtitle: 'Aktive sjekklister',
-  }
-})
 
 const kpis: Array<{
   title: string

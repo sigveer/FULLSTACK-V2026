@@ -17,6 +17,10 @@
       </div>
 
       <div class="field">
+        <label for="businessNmbr">Telefonnummer</label>
+      </div>
+
+      <div class="field">
         <label for="OrgNr">Org nmr/id</label>
       </div>
 
@@ -24,15 +28,19 @@
         <label for="businessType">Type virksomhet</label>
         <div class="select-wrap">
           <select id="businsType">
-            <option>Aksjeselskap (AS)</option>
-            <option>Enkeltpersonforetak (ENK)</option>
-            <option>Ansvarlig selskap (ANS)</option>
-            <option>Samvirkeforetak (SA)</option>
-            <option>Stiftelse</option>
+            <option>Restaurant</option>
+            <option>Kafé</option>
             <option>Annet</option>
           </select>
+          <svg class="select-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.2"
+               stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
         </div>
       </div>
+
+      <button class="btn-primary" type="button">Opprett</button>
     </div>
   </div>
 </template>

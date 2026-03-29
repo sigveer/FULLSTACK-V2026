@@ -29,19 +29,20 @@ const form = useForm({
   onSubmit: async ({ value }) => {
     try {
       await login.mutateAsync(value)
-      router.push('/select-org')
     } catch {
       toast.error('Feil e-post eller passord')
-    }
-
-    const firstMembership = auth.memberships[0]
-    if (!firstMembership) {
-      router.push('/create-org')
       return
     }
 
-    await selectOrg.mutateAsync({ organizationId: firstMembership.organizationId })
-    router.push('/')
+    const memberships = auth.memberships
+    if (memberships.length === 0) {
+      router.push('/select-org')
+    } else if (memberships.length === 1) {
+      await selectOrg.mutateAsync({ organizationId: memberships[0]!.organizationId })
+      router.push('/select-org')
+    } else {
+      router.push('/select-org')
+    }
   },
 })
 

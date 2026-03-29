@@ -6,6 +6,7 @@ import { useRouter } from 'vue-router'
 import { ref } from 'vue'
 import { Eye, EyeOff, Mail, Lock, User, Phone } from 'lucide-vue-next'
 import Button from '@/components/ui/button/Button.vue'
+import Checkbox from '@/components/ui/checkbox/Checkbox.vue'
 import InputGroup from '@/components/ui/input-group/InputGroup.vue'
 import InputGroupAddon from '@/components/ui/input-group/InputGroupAddon.vue'
 import InputGroupInput from '@/components/ui/input-group/InputGroupInput.vue'
@@ -14,7 +15,6 @@ import InputGroupButton from '@/components/ui/input-group/InputGroupButton.vue'
 const router = useRouter()
 const register = useRegister()
 const showPassword = ref(false)
-const termsAccepted = ref(false)
 
 const nameSchema = z.string().min(1, 'Påkrevd')
 const emailSchema = z.string().min(1, 'E-post er påkrevd').email('Ugyldig e-postadresse')
@@ -28,6 +28,7 @@ const form = useForm({
     email: '',
     phoneNumber: '',
     password: '',
+    termsAccepted: false,
   },
   onSubmit: async ({ value }) => {
     await register.mutateAsync({
@@ -189,13 +190,24 @@ defineExpose({ registerError: register.error })
       </div>
     </div>
 
-    <label class="terms-row">
-      <input type="checkbox" v-model="termsAccepted" />
-      <span class="terms-text">
-        Jeg godtar <a href="#">vilkårene</a> og
-        <a href="#">personvernreglene</a> for IK-Komplett
-      </span>
-    </label>
+    <form.Field name="termsAccepted" :validators="{
+      onChange: ({ value }: { value: boolean }) => !value ? 'Du må godta vilkårene' : undefined,
+    }">
+      <template v-slot="{ field, state }">
+        <div class="terms-row" @click="field.handleChange(!field.state.value)">
+          <Checkbox
+            :checked="field.state.value"
+            @update:checked="field.handleChange($event)"
+            @click.stop
+          />
+          <span class="terms-text">
+            Jeg godtar <a href="#" @click.stop>vilkårene</a> og
+            <a href="#" @click.stop>personvernreglene</a> for IK-Komplett
+          </span>
+        </div>
+        <p v-if="state.meta.errors.length" class="error">{{ state.meta.errors[0] }}</p>
+      </template>
+    </form.Field>
 
     <div class="buttons">
       <Button type="submit" :disabled="register.isPending.value">
@@ -259,15 +271,6 @@ label {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  cursor: pointer;
-}
-
-.terms-row input[type="checkbox"] {
-  margin-top: 2px;
-  accent-color: hsl(var(--primary));
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
   cursor: pointer;
 }
 

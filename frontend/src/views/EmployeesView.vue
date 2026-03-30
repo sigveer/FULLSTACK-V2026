@@ -79,20 +79,54 @@ function saveEdit() {
     </header>
 
     <div class="page-content">
-      <div class="row-top">
-        <div>
-          <h3>{{ employee.name }}</h3>
-          <p>{{ employee.email }}</p>
+      <section class="hero-card">
+        <h1>Ansatte</h1>
+        <p>Administrer og se oversikt over alle ansatte.</p>
+
+        <div class="org-card">
+          <div class="org-avatar">DE</div>
+          <div>
+            <h2>Demo Organization</h2>
+            <span class="org-meta">Org. nr: 2 · Restaurant · +47 000 00 000</span>
+            <div class="stats-row">
+              <div><strong>{{ stats.total }}</strong><span>ANSATTE</span></div>
+              <div><strong>{{ stats.leaders }}</strong><span>LEDERE</span></div>
+              <div><strong>{{ stats.admins }}</strong><span>ADMIN</span></div>
+            </div>
+          </div>
         </div>
 
-        <div class="row-actions">
-          <span class="badge" :class="badgeClass(employee.role)">{{ employee.role }}</span>
-          <button class="icon-btn" @click="toggleEmployee(employee.id)">
-            <ChevronUp v-if="employee.expanded" :size="18" />
-            <ChevronDown v-else :size="18" />
-          </button>
-        </div>
-      </div>
+        <input v-model="search" class="search-input" placeholder="Søk etter ansatt..." />
+      </section>
+
+      <section class="list-card">
+        <article v-for="employee in filteredEmployees" :key="employee.id" class="employee-row">
+          <div class="row-top">
+            <div>
+              <h3>{{ employee.name }}</h3>
+              <p>{{ employee.email }}</p>
+            </div>
+
+            <div class="row-actions">
+              <span class="badge" :class="badgeClass(employee.role)">{{ employee.role }}</span>
+              <button class="icon-btn" @click="toggleEmployee(employee.id)">
+                <ChevronUp v-if="employee.expanded" :size="18" />
+                <ChevronDown v-else :size="18" />
+              </button>
+            </div>
+          </div>
+
+          <div v-if="employee.expanded" class="details">
+            <div><span>E-POST</span><strong>{{ employee.email }}</strong></div>
+            <div><span>TELEFON</span><strong>{{ employee.phone }}</strong></div>
+            <div><span>ROLLE</span><strong>{{ employee.role }}</strong></div>
+            <div class="details-last">
+              <div><span>ANSATT SIDEN</span><strong>{{ employee.joinedAt }}</strong></div>
+              <button class="edit-btn" @click="openEdit(employee)">Rediger</button>
+            </div>
+          </div>
+        </article>
+      </section>
     </div>
   </AppLayout>
 </template>

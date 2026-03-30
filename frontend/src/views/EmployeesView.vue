@@ -15,6 +15,57 @@ type Employee = {
   joinedAt: string
   expanded: boolean
 }
+
+const search = ref('')
+const editingId = ref<number | null>(null)
+
+const employees = ref<Employee[]>([
+  { id: 1, name: 'Admin User', email: 'admin@iksystem.local', phone: '+47 000 00 000', role: 'Admin', joinedAt: '01. jan 2024', expanded: true },
+  { id: 2, name: 'Anna Solberg', email: 'anna@demo.no', phone: '+47 111 11 111', role: 'Leder', joinedAt: '14. feb 2024', expanded: false },
+  { id: 3, name: 'Per Hansen', email: 'per@demo.no', phone: '+47 222 22 222', role: 'Leder', joinedAt: '08. mar 2024', expanded: false },
+  { id: 4, name: 'Kari Nordmann', email: 'kari@demo.no', phone: '+47 333 33 333', role: 'Ansatt', joinedAt: '17. apr 2024', expanded: false },
+  { id: 5, name: 'Ola Larsen', email: 'ola@demo.no', phone: '+47 444 44 444', role: 'Ansatt', joinedAt: '29. mai 2024', expanded: false },
+])
+
+const form = ref<Employee>({
+  id: 0,
+  name: '',
+  email: '',
+  phone: '',
+  role: 'Ansatt',
+  joinedAt: '',
+  expanded: false,
+})
+
+const filteredEmployees = computed(() => {
+  const q = search.value.toLowerCase().trim()
+  return q
+    ? employees.value.filter((e) => [e.name, e.email, e.role].some((v) => v.toLowerCase().includes(q)))
+    : employees.value
+})
+
+const stats = computed(() => ({
+  total: employees.value.length,
+  leaders: employees.value.filter((e) => e.role === 'Leder').length,
+  admins: employees.value.filter((e) => e.role === 'Admin').length,
+}))
+
+const badgeClass = (role: Role) =>
+  role === 'Admin' ? 'badge-admin' : role === 'Leder' ? 'badge-leader' : 'badge-employee'
+
+function toggleEmployee(id: number) {
+  employees.value = employees.value.map((e) => ({ ...e, expanded: e.id === id ? !e.expanded : false }))
+}
+
+function openEdit(employee: Employee) {
+  editingId.value = employee.id
+  form.value = { ...employee }
+}
+
+function saveEdit() {
+  employees.value = employees.value.map((e) => (e.id === editingId.value ? { ...form.value } : e))
+  editingId.value = null
+}
 </script>
 
 <template>

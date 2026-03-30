@@ -28,34 +28,81 @@ type OrganizationEmployees = {
 const auth = useAuthStore()
 const search = ref('')
 const editingId = ref<number | null>(null)
+const expandedIds = ref<number[]>([])
 
-const organizations: OrganizationEmployees[] = [
+const organizations = ref<OrganizationEmployees[]>([
   {
     orgName: 'Demo Organization',
-    organizationId:'org-2',
+    organizationId: '2',
     category: 'Restaurant',
     phone: '+47 000 00 000',
     employees: [
-      { id: 1, name: 'Admin User', email: 'admin@iksystem.local', phone: '+47 000 00 000', role: 'Admin', joinedAt: '01. jan 2024' },
-      { id: 2, name: 'Anna Solberg', email: 'anna@demo.no', phone: '+47 111 11 111', role: 'Leder', joinedAt: '14. feb 2024' },
-      { id: 3, name: 'Per Hansen', email: 'per@demo.no', phone: '+47 222 22 222', role: 'Leder', joinedAt: '08. mar 2024' },
-      { id: 4, name: 'Kari Nordmann', email: 'kari@demo.no', phone: '+47 333 33 333', role: 'Ansatt', joinedAt: '17. apr 2024' },
-      { id: 5, name: 'Ola Larsen', email: 'ola@demo.no', phone: '+47 444 44 444', role: 'Ansatt', joinedAt: '29. mai 2024' },
+      {
+        id: 1,
+        name: 'Admin User',
+        email: 'admin@iksystem.local',
+        phone: '+47 000 00 000',
+        role: 'Admin',
+        joinedAt: '01. jan 2024',
+      },
+      {
+        id: 2,
+        name: 'Anna Solberg',
+        email: 'anna@demo.no',
+        phone: '+47 111 11 111',
+        role: 'Leder',
+        joinedAt: '14. feb 2024',
+      },
+      {
+        id: 3,
+        name: 'Per Hansen',
+        email: 'per@demo.no',
+        phone: '+47 222 22 222',
+        role: 'Leder',
+        joinedAt: '08. mar 2024',
+      },
+      {
+        id: 4,
+        name: 'Kari Nordmann',
+        email: 'kari@demo.no',
+        phone: '+47 333 33 333',
+        role: 'Ansatt',
+        joinedAt: '17. apr 2024',
+      },
+      {
+        id: 5,
+        name: 'Ola Larsen',
+        email: 'ola@demo.no',
+        phone: '+47 444 44 444',
+        role: 'Ansatt',
+        joinedAt: '29. mai 2024',
+      },
     ],
   },
   {
     orgName: 'Tom Virksomhet',
-    organizationId: 'org-3',
+    organizationId: '1',
     category: 'Kafé',
     phone: '+47 999 99 999',
     employees: [],
   },
-]
+])
 
-const currentOrgId = computed(() => auth.organizationId || '')
+const currentOrgId = computed(() => String(auth.organizationId ?? ''))
+
+const emptyOrganization: OrganizationEmployees = {
+  orgName: 'Ukjent virksomhet',
+  organizationId: '',
+  category: '',
+  phone: '',
+  employees: [],
+}
 
 const currentOrganization = computed(() => {
-  return organizations.find((org) => org.organizationId === currentOrgId.value) || null
+  return (
+    organizations.value.find((org) => org.organizationId === currentOrgId.value) ??
+    emptyOrganization
+  )
 })
 
 const form = ref<Employee>({
@@ -67,18 +114,20 @@ const form = ref<Employee>({
   joinedAt: '',
 })
 
-const expandedIds = ref<number[]>([])
-
 const filteredEmployees = computed(() => {
-  const employees = currentOrganization.value?.employees || []
+  const employees = currentOrganization.value.employees
   const q = search.value.toLowerCase().trim()
-  return q
-    ? employees.filter((e) => [e.name, e.email, e.role].some((v) => v.toLowerCase().includes(q)))
-    : employees
+
+  if (!q) return employees
+
+  return employees.filter((e) =>
+    [e.name, e.email, e.role].some((v) => v.toLowerCase().includes(q)),
+  )
 })
 
 const stats = computed(() => {
-  const employees = currentOrganization.value?.employees || []
+  const employees = currentOrganization.value.employees
+
   return {
     total: employees.length,
     leaders: employees.filter((e) => e.role === 'Leder').length,
@@ -86,7 +135,7 @@ const stats = computed(() => {
   }
 })
 
-const hasOverview = computed(() => !!currentOrganization.value && currentOrganization.value.employees.length > 0)
+const hasOverview = computed(() => currentOrganization.value.employees.length > 0)
 
 const badgeClass = (role: Role) =>
   role === 'Admin' ? 'badge-admin' : role === 'Leder' ? 'badge-leader' : 'badge-employee'
@@ -103,10 +152,13 @@ function openEdit(employee: Employee) {
 }
 
 function saveEdit() {
-  if (!currentOrganization.value) return
-  const employeeIndex = currentOrganization.value.employees.findIndex((e) => e.id === editingId.value)
+  const org = organizations.value.find((o) => o.organizationId === currentOrgId.value)
+  if (!org) return
+
+  const employeeIndex = org.employees.findIndex((e) => e.id === editingId.value)
   if (employeeIndex === -1) return
-  currentOrganization.value.employees[employeeIndex] = { ...form.value }
+
+  org.employees[employeeIndex] = { ...form.value }
   editingId.value = null
 }
 </script>

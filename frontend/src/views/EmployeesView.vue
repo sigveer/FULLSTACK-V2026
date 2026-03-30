@@ -16,7 +16,6 @@ type Employee = {
   joinedAt: string
   expanded: boolean
 }
-
 const search = ref('')
 const editingId = ref<number | null>(null)
 

@@ -5,21 +5,16 @@ defineProps<{
   deviations: Array<{
     id: number
     title: string
-    meta: string
-    severity: 'Kritisk' | 'Middels' | 'Løst'
+    dateLabel: string
+    statusLabel: 'Åpen' | 'Under behandling' | 'Løst' | 'Lukket'
   }>
 }>()
 
-const severityTone: Record<'Kritisk' | 'Middels' | 'Løst', 'danger' | 'warning' | 'ok'> = {
-  Kritisk: 'danger',
-  Middels: 'warning',
+const statusTone: Record<'Åpen' | 'Under behandling' | 'Løst' | 'Lukket', 'danger' | 'warning' | 'ok' | 'neutral'> = {
+  Åpen: 'danger',
+  'Under behandling': 'warning',
   Løst: 'ok',
-}
-
-const severityRailClass: Record<'Kritisk' | 'Middels' | 'Løst', string> = {
-  Kritisk: 'entry--critical',
-  Middels: 'entry--medium',
-  Løst: 'entry--resolved',
+  Lukket: 'neutral',
 }
 </script>
 
@@ -27,13 +22,15 @@ const severityRailClass: Record<'Kritisk' | 'Middels' | 'Løst', string> = {
   <section class="panel">
     <h2>Siste avvik</h2>
 
-    <article v-for="item in deviations" :key="item.id" class="entry" :class="severityRailClass[item.severity]">
+    <article v-for="item in deviations" :key="item.id" class="entry">
       <div>
         <h3>{{ item.title }}</h3>
-        <p>{{ item.meta }}</p>
+        <p>{{ item.dateLabel }}</p>
       </div>
-      <StatusPill :label="item.severity" :tone="severityTone[item.severity]" />
+      <StatusPill :label="item.statusLabel" :tone="statusTone[item.statusLabel]" />
     </article>
+
+    <p v-if="deviations.length === 0" class="empty-state">Ingen registrerte avvik ennå.</p>
   </section>
 </template>
 
@@ -77,16 +74,10 @@ h2 {
   font-size: 1.14rem;
 }
 
-.entry--critical {
-  border-left-color: #ab3030;
-}
-
-.entry--medium {
-  border-left-color: #b5781d;
-}
-
-.entry--resolved {
-  border-left-color: #158856;
+.empty-state {
+  margin-top: 8px;
+  color: var(--text-secondary);
+  font-size: 1.05rem;
 }
 
 @media (max-width: 760px) {

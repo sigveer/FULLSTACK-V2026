@@ -13,9 +13,18 @@ import { useAuthStore } from '@/stores/auth'
 import {
   useCreateDeviationMutation,
   useDeviationsQuery,
+  useDeleteDeviationMutation,
   useOrganizationMembersQuery,
+  useUpdateDeviationMutation,
+  useUpdateDeviationStatusMutation,
 } from '@/composables/useDeviations'
-import type { CreateDeviationRequest, Deviation, DeviationModule, DeviationStatus } from '@/types/deviation'
+import type {
+  CreateDeviationRequest,
+  Deviation,
+  DeviationModule,
+  DeviationStatus,
+  UpdateDeviationRequest,
+} from '@/types/deviation'
 
 type ModuleFilter = 'ALL' | DeviationModule
 type SortOrder = 'NEWEST_FIRST' | 'OLDEST_FIRST'
@@ -23,10 +32,15 @@ type SortOrder = 'NEWEST_FIRST' | 'OLDEST_FIRST'
 const auth = useAuthStore()
 const deviationsQuery = useDeviationsQuery()
 const createDeviation = useCreateDeviationMutation()
+const updateDeviation = useUpdateDeviationMutation()
+const updateDeviationStatus = useUpdateDeviationStatusMutation()
+const deleteDeviation = useDeleteDeviationMutation()
 
 const activeModuleFilter = ref<ModuleFilter>('ALL')
 const sortOrder = ref<SortOrder>('NEWEST_FIRST')
 const createDialogOpen = ref(false)
+const editDialogOpen = ref(false)
+const activeDeviation = ref<Deviation | null>(null)
 
 const deviations = computed(() => deviationsQuery.data.value ?? [])
 const canManage = computed(() => auth.role === 'ADMIN' || auth.role === 'MANAGER')
@@ -110,8 +124,8 @@ function countByModule(items: Deviation[], module: DeviationModule): number {
 }
 
 function handleEdit(deviation: Deviation) {
-  // Commit 5 implements edit flow; button is exposed now from expanded view.
-  console.info('Edit requested for deviation', deviation.id)
+  activeDeviation.value = deviation
+  editDialogOpen.value = true
 }
 
 function openCreateDialog() {
@@ -125,6 +139,41 @@ async function handleCreate(payload: CreateDeviationRequest) {
     toast.success('Avvik registrert')
   } catch (error) {
     handleMutationError(error, 'Kunne ikke registrere avvik')
+  }
+}
+
+async function handleUpdate(payload: { id: number; data: UpdateDeviationRequest }) {
+  try {
+    await updateDeviation.mutateAsync({
+      id: payload.id,
+      payload: payload.data,
+    })
+    editDialogOpen.value = false
+    activeDeviation.value = null
+    toast.success('Avvik oppdatert')
+  } catch (error) {
+    handleMutationError(error, 'Kunne ikke oppdatere avvik')
+  }
+}
+
+async function handleDelete(id: number) {
+  try {
+    await deleteDeviation.mutateAsync(id)
+    toast.success('Avvik slettet')
+  } catch (error) {
+    handleMutationError(error, 'Kunne ikke slette avvik')
+  }
+}
+
+async function handleStatusUpdate(payload: { id: number; status: DeviationStatus }) {
+  try {
+    await updateDeviationStatus.mutateAsync({
+      id: payload.id,
+      payload: { status: payload.status },
+    })
+    toast.success('Status oppdatert')
+  } catch (error) {
+    handleMutationError(error, 'Kunne ikke oppdatere status')
   }
 }
 
@@ -220,6 +269,8 @@ function handleMutationError(error: unknown, fallbackMessage: string) {
             :deviation="item"
             :can-manage="canManage"
             @edit="handleEdit"
+            @delete="handleDelete"
+            @update-status="handleStatusUpdate"
           />
         </div>
       </section>
@@ -227,9 +278,19 @@ function handleMutationError(error: unknown, fallbackMessage: string) {
 
     <DeviationFormDialog
       v-model:open="createDialogOpen"
+      mode="create"
       :submitting="createDeviation.isPending.value"
       :assignees="assigneeOptions"
       @create="handleCreate"
+    />
+
+    <DeviationFormDialog
+      v-model:open="editDialogOpen"
+      mode="edit"
+      :initial-deviation="activeDeviation"
+      :submitting="updateDeviation.isPending.value"
+      :assignees="assigneeOptions"
+      @update="handleUpdate"
     />
   </AppLayout>
 </template>

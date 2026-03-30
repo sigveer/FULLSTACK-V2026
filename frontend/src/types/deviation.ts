@@ -31,6 +31,19 @@ export interface CreateDeviationRequest {
   assignedToUserId?: number
 }
 
+export interface UpdateDeviationRequest {
+  module?: DeviationModule
+  title?: string
+  description?: string
+  immediateAction?: string
+  severity?: DeviationSeverity
+  assignedToUserId?: number
+}
+
+export interface UpdateDeviationStatusRequest {
+  status: DeviationStatus
+}
+
 export interface OrganizationMember {
   id: number
   userId: number

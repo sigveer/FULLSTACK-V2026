@@ -9,7 +9,13 @@ import DialogTitle from '@/components/ui/dialog/DialogTitle.vue'
 import Button from '@/components/ui/button/Button.vue'
 import Input from '@/components/ui/input/Input.vue'
 import Textarea from '@/components/ui/textarea/Textarea.vue'
-import type { CreateDeviationRequest, DeviationModule, DeviationSeverity } from '@/types/deviation'
+import type {
+  CreateDeviationRequest,
+  Deviation,
+  DeviationModule,
+  DeviationSeverity,
+  UpdateDeviationRequest,
+} from '@/types/deviation'
 
 interface AssigneeOption {
   userId: number
@@ -19,10 +25,14 @@ interface AssigneeOption {
 const props = withDefaults(
   defineProps<{
     open: boolean
+    mode?: 'create' | 'edit'
+    initialDeviation?: Deviation | null
     submitting?: boolean
     assignees: AssigneeOption[]
   }>(),
   {
+    mode: 'create',
+    initialDeviation: null,
     submitting: false,
   },
 )
@@ -30,6 +40,7 @@ const props = withDefaults(
 const emits = defineEmits<{
   (e: 'update:open', value: boolean): void
   (e: 'create', payload: CreateDeviationRequest): void
+  (e: 'update', payload: { id: number; data: UpdateDeviationRequest }): void
 }>()
 
 const moduleValue = ref<DeviationModule>('IK_MAT')
@@ -52,21 +63,48 @@ const severityOptions: Array<{ value: DeviationSeverity; label: string }> = [
   { value: 'CRITICAL', label: 'Kritisk' },
 ]
 
-const submitLabel = computed(() => (props.submitting ? 'Registrerer...' : 'Registrer avvik'))
+const dialogTitle = computed(() => (props.mode === 'create' ? 'Rapporter avvik' : 'Rediger avvik'))
+
+const dialogDescription = computed(() =>
+  props.mode === 'create'
+    ? 'Registrer et avvik fra rutiner eller grenseverdier'
+    : 'Oppdater informasjonen for valgt avvik',
+)
+
+const submitLabel = computed(() => {
+  if (props.submitting) {
+    return props.mode === 'create' ? 'Registrerer...' : 'Lagrer...'
+  }
+
+  return props.mode === 'create' ? 'Registrer avvik' : 'Lagre endringer'
+})
 
 watch(
-  () => props.open,
+  () => [props.open, props.mode, props.initialDeviation],
   (open) => {
-    if (!open) {
+    const isOpen = Array.isArray(open) ? open[0] : open
+    if (!isOpen) {
       return
     }
 
-    moduleValue.value = 'IK_MAT'
-    title.value = ''
-    severity.value = 'LOW'
-    description.value = ''
-    immediateAction.value = ''
-    assignedTo.value = ''
+    if (props.mode === 'edit' && props.initialDeviation) {
+      moduleValue.value = props.initialDeviation.module
+      title.value = props.initialDeviation.title
+      severity.value = props.initialDeviation.severity
+      description.value = props.initialDeviation.description
+      immediateAction.value = props.initialDeviation.immediateAction ?? ''
+      assignedTo.value = props.initialDeviation.assignedToUserId
+        ? String(props.initialDeviation.assignedToUserId)
+        : ''
+    } else {
+      moduleValue.value = 'IK_MAT'
+      title.value = ''
+      severity.value = 'LOW'
+      description.value = ''
+      immediateAction.value = ''
+      assignedTo.value = ''
+    }
+
     errorMessage.value = ''
   },
 )
@@ -107,6 +145,14 @@ function handleSubmit() {
     payload.assignedToUserId = Number(assignedTo.value)
   }
 
+  if (props.mode === 'edit' && props.initialDeviation) {
+    emits('update', {
+      id: props.initialDeviation.id,
+      data: payload,
+    })
+    return
+  }
+
   emits('create', payload)
 }
 </script>
@@ -115,9 +161,9 @@ function handleSubmit() {
   <Dialog :open="open" @update:open="(value) => emits('update:open', value)">
     <DialogContent class="deviation-dialog">
       <DialogHeader>
-        <DialogTitle>Rapporter avvik</DialogTitle>
+        <DialogTitle>{{ dialogTitle }}</DialogTitle>
         <DialogDescription>
-          Registrer et avvik fra rutiner eller grenseverdier
+          {{ dialogDescription }}
         </DialogDescription>
       </DialogHeader>
 

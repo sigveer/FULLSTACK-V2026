@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import KpiCard from '@/components/dashboard/KpiCard.vue'
 import LatestDeviationCard from '@/components/dashboard/LatestDeviationCard.vue'
 import TemperatureLogCard from '@/components/dashboard/TemperatureLogCard.vue'
@@ -6,6 +7,10 @@ import AppLayout from '@/components/layout/AppLayout.vue'
 import StatusPill from '@/components/ui/StatusPill.vue'
 import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
+import { useDeviationsQuery } from '@/composables/useDeviations'
+import type { DeviationStatus } from '@/types/deviation'
+
+const deviationsQuery = useDeviationsQuery()
 
 const kpis: Array<{
   title: string
@@ -63,26 +68,45 @@ const temperatures = [
   },
 ]
 
-const deviations = [
-  {
-    id: 1,
-    title: 'Kjøleskap 2 over grenseverdi',
-    meta: 'IK-Mat - Rapportert av Ansatt Ansattsen - 2 timer siden',
-    severity: 'Kritisk' as const,
-  },
-  {
-    id: 2,
-    title: 'Manglende ID-kontroll observert',
-    meta: 'IK-Alkohol - Rapportert av Leder Ledersen - I går',
-    severity: 'Middels' as const,
-  },
-  {
-    id: 3,
-    title: 'Renholdsplan ikke fullført tirsdag',
-    meta: 'IK-Mat - Rapportert av Ansatt Ansattsen - 3 dager siden',
-    severity: 'Løst' as const,
-  },
-]
+const latestDeviations = computed(() => {
+  const source = deviationsQuery.data.value ?? []
+
+  return [...source]
+    .sort((a, b) => new Date(b.reportedAt).getTime() - new Date(a.reportedAt).getTime())
+    .slice(0, 3)
+    .map((item) => ({
+      id: item.id,
+      title: item.title,
+      dateLabel: toDashboardDate(item.reportedAt),
+      statusLabel: toStatusLabel(item.status),
+    }))
+})
+
+function toDashboardDate(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return '-'
+  }
+
+  return date.toLocaleDateString('nb-NO', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
+}
+
+function toStatusLabel(status: DeviationStatus): 'Åpen' | 'Under behandling' | 'Løst' | 'Lukket' {
+  switch (status) {
+    case 'OPEN':
+      return 'Åpen'
+    case 'IN_PROGRESS':
+      return 'Under behandling'
+    case 'RESOLVED':
+      return 'Løst'
+    default:
+      return 'Lukket'
+  }
+}
 </script>
 
 <template>
@@ -121,7 +145,7 @@ const deviations = [
       </section>
 
       <TemperatureLogCard :rows="temperatures" />
-      <LatestDeviationCard :deviations="deviations" />
+      <LatestDeviationCard :deviations="latestDeviations" />
     </div>
   </AppLayout>
 </template>

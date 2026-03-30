@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp } from 'lucide-vue-next'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
+import { useAuthStore } from '@/stores/auth'
 
 type Role = 'Admin' | 'Leder' | 'Ansatt'
 
@@ -14,18 +15,51 @@ type Employee = {
   phone: string
   role: Role
   joinedAt: string
-  expanded: boolean
 }
+
+type OrganizationEmployees = {
+  orgId: string
+  orgName: string
+  orgNumber: string
+  category: string
+  phone: string
+  employees: Employee[]
+}
+
+const auth = useAuthStore()
 const search = ref('')
 const editingId = ref<number | null>(null)
 
-const employees = ref<Employee[]>([
-  { id: 1, name: 'Admin User', email: 'admin@iksystem.local', phone: '+47 000 00 000', role: 'Admin', joinedAt: '01. jan 2024', expanded: true },
-  { id: 2, name: 'Anna Solberg', email: 'anna@demo.no', phone: '+47 111 11 111', role: 'Leder', joinedAt: '14. feb 2024', expanded: false },
-  { id: 3, name: 'Per Hansen', email: 'per@demo.no', phone: '+47 222 22 222', role: 'Leder', joinedAt: '08. mar 2024', expanded: false },
-  { id: 4, name: 'Kari Nordmann', email: 'kari@demo.no', phone: '+47 333 33 333', role: 'Ansatt', joinedAt: '17. apr 2024', expanded: false },
-  { id: 5, name: 'Ola Larsen', email: 'ola@demo.no', phone: '+47 444 44 444', role: 'Ansatt', joinedAt: '29. mai 2024', expanded: false },
-])
+const organizations: OrganizationEmployees[] = [
+  {
+    orgId: 'demo-1',
+    orgName: 'Demo Organization',
+    orgNumber: '2',
+    category: 'Restaurant',
+    phone: '+47 000 00 000',
+    employees: [
+      { id: 1, name: 'Admin User', email: 'admin@iksystem.local', phone: '+47 000 00 000', role: 'Admin', joinedAt: '01. jan 2024' },
+      { id: 2, name: 'Anna Solberg', email: 'anna@demo.no', phone: '+47 111 11 111', role: 'Leder', joinedAt: '14. feb 2024' },
+      { id: 3, name: 'Per Hansen', email: 'per@demo.no', phone: '+47 222 22 222', role: 'Leder', joinedAt: '08. mar 2024' },
+      { id: 4, name: 'Kari Nordmann', email: 'kari@demo.no', phone: '+47 333 33 333', role: 'Ansatt', joinedAt: '17. apr 2024' },
+      { id: 5, name: 'Ola Larsen', email: 'ola@demo.no', phone: '+47 444 44 444', role: 'Ansatt', joinedAt: '29. mai 2024' },
+    ],
+  },
+  {
+    orgId: 'demo-empty',
+    orgName: 'Tom Virksomhet',
+    orgNumber: '3',
+    category: 'Kafé',
+    phone: '+47 999 99 999',
+    employees: [],
+  },
+]
+
+const currentOrgId = computed(() => auth.organizationId || '')
+
+const currentOrganization = computed(() => {
+  return organizations.find((org) => org.orgId === currentOrgId.value) || null
+})
 
 const form = ref<Employee>({
   id: 0,
@@ -34,27 +68,36 @@ const form = ref<Employee>({
   phone: '',
   role: 'Ansatt',
   joinedAt: '',
-  expanded: false,
 })
+
+const expandedIds = ref<number[]>([])
 
 const filteredEmployees = computed(() => {
+  const employees = currentOrganization.value?.employees || []
   const q = search.value.toLowerCase().trim()
   return q
-    ? employees.value.filter((e) => [e.name, e.email, e.role].some((v) => v.toLowerCase().includes(q)))
-    : employees.value
+    ? employees.filter((e) => [e.name, e.email, e.role].some((v) => v.toLowerCase().includes(q)))
+    : employees
 })
 
-const stats = computed(() => ({
-  total: employees.value.length,
-  leaders: employees.value.filter((e) => e.role === 'Leder').length,
-  admins: employees.value.filter((e) => e.role === 'Admin').length,
-}))
+const stats = computed(() => {
+  const employees = currentOrganization.value?.employees || []
+  return {
+    total: employees.length,
+    leaders: employees.filter((e) => e.role === 'Leder').length,
+    admins: employees.filter((e) => e.role === 'Admin').length,
+  }
+})
+
+const hasOverview = computed(() => !!currentOrganization.value && currentOrganization.value.employees.length > 0)
 
 const badgeClass = (role: Role) =>
   role === 'Admin' ? 'badge-admin' : role === 'Leder' ? 'badge-leader' : 'badge-employee'
 
+const isExpanded = (id: number) => expandedIds.value.includes(id)
+
 function toggleEmployee(id: number) {
-  employees.value = employees.value.map((e) => ({ ...e, expanded: e.id === id ? !e.expanded : false }))
+  expandedIds.value = isExpanded(id) ? [] : [id]
 }
 
 function openEdit(employee: Employee) {
@@ -63,7 +106,10 @@ function openEdit(employee: Employee) {
 }
 
 function saveEdit() {
-  employees.value = employees.value.map((e) => (e.id === editingId.value ? { ...form.value } : e))
+  if (!currentOrganization.value) return
+  const employeeIndex = currentOrganization.value.employees.findIndex((e) => e.id === editingId.value)
+  if (employeeIndex === -1) return
+  currentOrganization.value.employees[employeeIndex] = { ...form.value }
   editingId.value = null
 }
 </script>
@@ -79,53 +125,64 @@ function saveEdit() {
     </header>
 
     <div class="page-content">
-      <section class="hero-card">
-        <h1>Ansatte</h1>
-        <p>Administrer og se oversikt over alle ansatte.</p>
+      <template v-if="currentOrganization && hasOverview">
+        <section class="hero-card">
+          <h1>Ansatte</h1>
+          <p>Administrer og se oversikt over alle ansatte.</p>
 
-        <div class="org-card">
-          <div class="org-avatar">DE</div>
-          <div>
-            <h2>Demo Organization</h2>
-            <span class="org-meta">Org. nr: 2 · Restaurant · +47 000 00 000</span>
-            <div class="stats-row">
-              <div><strong>{{ stats.total }}</strong><span>ANSATTE</span></div>
-              <div><strong>{{ stats.leaders }}</strong><span>LEDERE</span></div>
-              <div><strong>{{ stats.admins }}</strong><span>ADMIN</span></div>
-            </div>
-          </div>
-        </div>
-
-        <input v-model="search" class="search-input" placeholder="Søk etter ansatt..." />
-      </section>
-
-      <section class="list-card">
-        <article v-for="employee in filteredEmployees" :key="employee.id" class="employee-row">
-          <div class="row-top">
+          <div class="org-card">
+            <div class="org-avatar">{{ currentOrganization.orgName.slice(0, 2).toUpperCase() }}</div>
             <div>
-              <h3>{{ employee.name }}</h3>
-              <p>{{ employee.email }}</p>
-            </div>
-
-            <div class="row-actions">
-              <span class="badge" :class="badgeClass(employee.role)">{{ employee.role }}</span>
-              <button class="icon-btn" @click="toggleEmployee(employee.id)">
-                <ChevronUp v-if="employee.expanded" :size="18" />
-                <ChevronDown v-else :size="18" />
-              </button>
+              <h2>{{ currentOrganization.orgName }}</h2>
+              <span class="org-meta">Org. nr: {{ currentOrganization.orgNumber }} · {{ currentOrganization.category }} · {{ currentOrganization.phone }}</span>
+              <div class="stats-row">
+                <div><strong>{{ stats.total }}</strong><span>ANSATTE</span></div>
+                <div><strong>{{ stats.leaders }}</strong><span>LEDERE</span></div>
+                <div><strong>{{ stats.admins }}</strong><span>ADMIN</span></div>
+              </div>
             </div>
           </div>
 
-          <div v-if="employee.expanded" class="details">
-            <div><span>E-POST</span><strong>{{ employee.email }}</strong></div>
-            <div><span>TELEFON</span><strong>{{ employee.phone }}</strong></div>
-            <div><span>ROLLE</span><strong>{{ employee.role }}</strong></div>
-            <div class="details-last">
-              <div><span>ANSATT SIDEN</span><strong>{{ employee.joinedAt }}</strong></div>
-              <button class="edit-btn" @click="openEdit(employee)">Rediger</button>
+          <input v-model="search" class="search-input" placeholder="Søk etter ansatt..." />
+        </section>
+
+        <section class="list-card">
+          <article v-for="employee in filteredEmployees" :key="employee.id" class="employee-row">
+            <div class="row-top">
+              <div>
+                <h3>{{ employee.name }}</h3>
+                <p>{{ employee.email }}</p>
+              </div>
+
+              <div class="row-actions">
+                <span class="badge" :class="badgeClass(employee.role)">{{ employee.role }}</span>
+                <button class="icon-btn" @click="toggleEmployee(employee.id)">
+                  <ChevronUp v-if="isExpanded(employee.id)" :size="18" />
+                  <ChevronDown v-else :size="18" />
+                </button>
+              </div>
             </div>
-          </div>
-        </article>
+
+            <div v-if="isExpanded(employee.id)" class="details">
+              <div><span>E-POST</span><strong>{{ employee.email }}</strong></div>
+              <div><span>TELEFON</span><strong>{{ employee.phone }}</strong></div>
+              <div><span>ROLLE</span><strong>{{ employee.role }}</strong></div>
+              <div class="details-last">
+                <div><span>ANSATT SIDEN</span><strong>{{ employee.joinedAt }}</strong></div>
+                <button class="edit-btn" @click="openEdit(employee)">Rediger</button>
+              </div>
+            </div>
+          </article>
+        </section>
+      </template>
+
+      <section v-else class="landing-card">
+        <h1>Ansatte</h1>
+        <p>Denne virksomheten har ingen ansatte registrert ennå.</p>
+        <div class="landing-box">
+          <h3>Tom oversikt</h3>
+          <span>Når ansatte legges til for denne virksomheten, vil oversikten vises her.</span>
+        </div>
       </section>
     </div>
 
@@ -156,6 +213,11 @@ function saveEdit() {
 .header-separator { height: 1rem !important; width: 1px !important; margin-right: 0.5rem; }
 .page-title { font-weight: 500; color: hsl(var(--sidebar-primary, 245 43% 52%)); }
 .page-content { display: flex; flex-direction: column; gap: 1rem; padding: 0 1rem 1rem; background: #f6f4ef; min-height: calc(100vh - 4rem); }
+.hero-card, .list-card, .landing-card {
+  border: 1px solid #e4ddd3;
+  border-radius: 1rem;
+  background: #fff;
+}
 .hero-card, .list-card { border: 1px solid #e4ddd3; border-radius: 1rem; background: #fff; }
 .hero-card { padding: 1.5rem; }
 .hero-card h1 { margin: 0; font-size: 2.4rem; font-weight: 800; }
@@ -187,6 +249,12 @@ function saveEdit() {
 .details-last { display: flex !important; flex-direction: row !important; justify-content: space-between; align-items: end; gap: 1rem; }
 .edit-btn, .save-btn, .cancel-btn { border: 0; border-radius: 0.8rem; padding: 0.75rem 1rem; font-weight: 600; cursor: pointer; }
 .edit-btn { background: #eee9ff; color: #5a4fd6; }
+.landing-card { padding: 1.5rem; }
+.landing-card h1 { margin: 0; font-size: 2.4rem; font-weight: 800; }
+.landing-card p { margin: 0.35rem 0 1.25rem; color: #6f6a63; }
+.landing-box { border: 1px dashed #d8cfff; background: #f6f1ff; color: #5a4fd6; border-radius: 1rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.35rem; }
+.landing-box h3 { margin: 0; font-size: 1.1rem; }
+.landing-box span { color: #6f6a63; }
 .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; padding: 1rem; }
 .modal { width: 100%; max-width: 26rem; background: white; border-radius: 1rem; padding: 1rem; display: grid; gap: 0.75rem; }
 .modal h3 { margin: 0 0 0.25rem; }

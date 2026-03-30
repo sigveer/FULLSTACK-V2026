@@ -16,21 +16,24 @@ import { SidebarTrigger } from '@/components/ui/sidebar'
     </header>
 
     <div class="page-content">
-      <div class="empty-state">
-        <div class="empty-state-bg" />
-        <div class="empty-state-inner">
-          <div class="empty-state-icon">
-            <Users :stroke-width="1.5" />
-          </div>
-          <div class="empty-state-text">
-            <h3>Kommer snart</h3>
-            <p>Ansattadministrasjon er under utvikling. Her vil du snart kunne administrere ansatte og roller.</p>
-          </div>
+      <div class="row-top">
+        <div>
+          <h3>{{ employee.name }}</h3>
+          <p>{{ employee.email }}</p>
+        </div>
+
+        <div class="row-actions">
+          <span class="badge" :class="badgeClass(employee.role)">{{ employee.role }}</span>
+          <button class="icon-btn" @click="toggleEmployee(employee.id)">
+            <ChevronUp v-if="employee.expanded" :size="18" />
+            <ChevronDown v-else :size="18" />
+          </button>
         </div>
       </div>
     </div>
   </AppLayout>
 </template>
+
 
 <style scoped>
 .page-header { display: flex; height: 4rem; flex-shrink: 0; align-items: center; }

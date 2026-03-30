@@ -18,9 +18,8 @@ type Employee = {
 }
 
 type OrganizationEmployees = {
-  orgId: string
   orgName: string
-  orgNumber: string
+  organizationId: string
   category: string
   phone: string
   employees: Employee[]
@@ -32,9 +31,8 @@ const editingId = ref<number | null>(null)
 
 const organizations: OrganizationEmployees[] = [
   {
-    orgId: 'demo-1',
     orgName: 'Demo Organization',
-    orgNumber: '2',
+    organizationId:'org-2',
     category: 'Restaurant',
     phone: '+47 000 00 000',
     employees: [
@@ -46,9 +44,8 @@ const organizations: OrganizationEmployees[] = [
     ],
   },
   {
-    orgId: 'demo-empty',
     orgName: 'Tom Virksomhet',
-    orgNumber: '3',
+    organizationId: 'org-3',
     category: 'Kafé',
     phone: '+47 999 99 999',
     employees: [],
@@ -58,7 +55,7 @@ const organizations: OrganizationEmployees[] = [
 const currentOrgId = computed(() => auth.organizationId || '')
 
 const currentOrganization = computed(() => {
-  return organizations.find((org) => org.orgId === currentOrgId.value) || null
+  return organizations.find((org) => org.organizationId === currentOrgId.value) || null
 })
 
 const form = ref<Employee>({
@@ -134,7 +131,7 @@ function saveEdit() {
             <div class="org-avatar">{{ currentOrganization.orgName.slice(0, 2).toUpperCase() }}</div>
             <div>
               <h2>{{ currentOrganization.orgName }}</h2>
-              <span class="org-meta">Org. nr: {{ currentOrganization.orgNumber }} · {{ currentOrganization.category }} · {{ currentOrganization.phone }}</span>
+              <span class="org-meta">Org. nr: {{ currentOrganization.organizationId }} · {{ currentOrganization.category }} · {{ currentOrganization.phone }}</span>
               <div class="stats-row">
                 <div><strong>{{ stats.total }}</strong><span>ANSATTE</span></div>
                 <div><strong>{{ stats.leaders }}</strong><span>LEDERE</span></div>

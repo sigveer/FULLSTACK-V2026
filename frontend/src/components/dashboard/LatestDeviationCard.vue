@@ -5,21 +5,25 @@ defineProps<{
   deviations: Array<{
     id: number
     title: string
-    meta: string
-    severity: 'Kritisk' | 'Middels' | 'Løst'
+    moduleLabel: string
+    reportedBy: string
+    relativeTime: string
+    severityLabel: 'Lav' | 'Middels' | 'Høy' | 'Kritisk'
   }>
 }>()
 
-const severityTone: Record<'Kritisk' | 'Middels' | 'Løst', 'danger' | 'warning' | 'ok'> = {
-  Kritisk: 'danger',
+const severityTone: Record<'Lav' | 'Middels' | 'Høy' | 'Kritisk', 'ok' | 'warning' | 'danger'> = {
+  Lav: 'ok',
   Middels: 'warning',
-  Løst: 'ok',
+  Høy: 'warning',
+  Kritisk: 'danger',
 }
 
-const severityRailClass: Record<'Kritisk' | 'Middels' | 'Løst', string> = {
-  Kritisk: 'entry--critical',
+const severityRailClass: Record<'Lav' | 'Middels' | 'Høy' | 'Kritisk', string> = {
+  Lav: 'entry--low',
   Middels: 'entry--medium',
-  Løst: 'entry--resolved',
+  Høy: 'entry--high',
+  Kritisk: 'entry--critical',
 }
 </script>
 
@@ -27,13 +31,15 @@ const severityRailClass: Record<'Kritisk' | 'Middels' | 'Løst', string> = {
   <section class="panel">
     <h2>Siste avvik</h2>
 
-    <article v-for="item in deviations" :key="item.id" class="entry" :class="severityRailClass[item.severity]">
+    <article v-for="item in deviations" :key="item.id" class="entry" :class="severityRailClass[item.severityLabel]">
       <div>
         <h3>{{ item.title }}</h3>
-        <p>{{ item.meta }}</p>
+        <p>{{ item.moduleLabel }} · Rapportert av {{ item.reportedBy }} · {{ item.relativeTime }}</p>
       </div>
-      <StatusPill :label="item.severity" :tone="severityTone[item.severity]" />
+      <StatusPill :label="item.severityLabel" :tone="severityTone[item.severityLabel]" />
     </article>
+
+    <p v-if="deviations.length === 0" class="empty-state">Ingen registrerte avvik ennå.</p>
   </section>
 </template>
 
@@ -81,12 +87,22 @@ h2 {
   border-left-color: #ab3030;
 }
 
-.entry--medium {
-  border-left-color: #b5781d;
+.entry--high {
+  border-left-color: #c9751a;
 }
 
-.entry--resolved {
+.entry--medium {
+  border-left-color: #d0a11f;
+}
+
+.entry--low {
   border-left-color: #158856;
+}
+
+.empty-state {
+  margin-top: 8px;
+  color: var(--text-secondary);
+  font-size: 1.05rem;
 }
 
 @media (max-width: 760px) {

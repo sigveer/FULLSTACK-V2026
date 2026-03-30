@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import KpiCard from '@/components/dashboard/KpiCard.vue'
 import LatestDeviationCard from '@/components/dashboard/LatestDeviationCard.vue'
 import TemperatureLogCard from '@/components/dashboard/TemperatureLogCard.vue'
@@ -6,8 +7,15 @@ import AppLayout from '@/components/layout/AppLayout.vue'
 import StatusPill from '@/components/ui/StatusPill.vue'
 import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
+import { useChecklistsQuery } from '@/composables/useChecklists'
+import { useDeviationsQuery } from '@/composables/useDeviations'
+import type { Checklist } from '@/types/checklist'
+import type { DeviationSeverity } from '@/types/deviation'
 
-const kpis: Array<{
+const deviationsQuery = useDeviationsQuery()
+const checklistsQuery = useChecklistsQuery()
+
+const kpis = computed<Array<{
   title: string
   value: string
   subtitle?: string
@@ -16,25 +24,42 @@ const kpis: Array<{
     current: number
     total: number
   }
-}> = [
-  {
-    title: 'Temp.avvik',
-    value: '2',
-    subtitle: 'Krever tiltak',
-    highlight: 'danger' as const,
-  },
-  {
-    title: 'Apne avvik',
-    value: '4',
-    subtitle: '1 kritisk',
-  },
-  {
-    title: 'Opplæring',
-    value: '92%',
-    subtitle: '1 utløper snart',
-    highlight: 'success' as const,
-  },
-]
+}>>(() => {
+  const dailyStats = getDailyChecklistStats(checklistsQuery.data.value ?? [])
+  const allDeviations = deviationsQuery.data.value ?? []
+  const openCount = allDeviations.filter((item) => item.status === 'OPEN').length
+  const criticalOpenCount = allDeviations.filter(
+    (item) => item.status === 'OPEN' && item.severity === 'CRITICAL',
+  ).length
+
+  return [
+    {
+      title: 'Sjekklister i dag',
+      value: `${dailyStats.completed}/${dailyStats.total}`,
+      progress: {
+        current: dailyStats.completed,
+        total: Math.max(dailyStats.total, 1),
+      },
+    },
+    {
+      title: 'Temp.avvik',
+      value: '2',
+      subtitle: 'Krever tiltak',
+      highlight: 'danger' as const,
+    },
+    {
+      title: 'Åpne avvik',
+      value: String(openCount),
+      subtitle: `${criticalOpenCount} kritisk`,
+    },
+    {
+      title: 'Opplæring',
+      value: '92%',
+      subtitle: '1 utløper snart',
+      highlight: 'success' as const,
+    },
+  ]
+})
 
 const temperatures = [
   {
@@ -63,26 +88,67 @@ const temperatures = [
   },
 ]
 
-const deviations = [
-  {
-    id: 1,
-    title: 'Kjøleskap 2 over grenseverdi',
-    meta: 'IK-Mat - Rapportert av Ansatt Ansattsen - 2 timer siden',
-    severity: 'Kritisk' as const,
-  },
-  {
-    id: 2,
-    title: 'Manglende ID-kontroll observert',
-    meta: 'IK-Alkohol - Rapportert av Leder Ledersen - I går',
-    severity: 'Middels' as const,
-  },
-  {
-    id: 3,
-    title: 'Renholdsplan ikke fullført tirsdag',
-    meta: 'IK-Mat - Rapportert av Ansatt Ansattsen - 3 dager siden',
-    severity: 'Løst' as const,
-  },
-]
+const latestDeviations = computed(() => {
+  const source = deviationsQuery.data.value ?? []
+
+  return [...source]
+    .sort((a, b) => new Date(b.reportedAt).getTime() - new Date(a.reportedAt).getTime())
+    .slice(0, 3)
+    .map((item) => ({
+      id: item.id,
+      title: item.title,
+      moduleLabel: item.module === 'IK_MAT' ? 'IK-Mat' : 'IK-Alkohol',
+      reportedBy: item.reportedByUserName,
+      relativeTime: toRelativeTime(item.reportedAt),
+      severityLabel: toSeverityLabel(item.severity),
+    }))
+})
+
+function toSeverityLabel(severity: DeviationSeverity): 'Lav' | 'Middels' | 'Høy' | 'Kritisk' {
+  switch (severity) {
+    case 'LOW':
+      return 'Lav'
+    case 'MEDIUM':
+      return 'Middels'
+    case 'HIGH':
+      return 'Høy'
+    default:
+      return 'Kritisk'
+  }
+}
+
+function toRelativeTime(value: string): string {
+  const timestamp = new Date(value).getTime()
+  if (Number.isNaN(timestamp)) {
+    return '-'
+  }
+
+  const diffMs = Date.now() - timestamp
+  const minute = 60 * 1000
+  const hour = 60 * minute
+  const day = 24 * hour
+
+  if (diffMs < hour) {
+    const minutes = Math.max(1, Math.floor(diffMs / minute))
+    return `${minutes} min siden`
+  }
+
+  if (diffMs < day) {
+    const hours = Math.floor(diffMs / hour)
+    return `${hours} time${hours > 1 ? 'r' : ''} siden`
+  }
+
+  const days = Math.floor(diffMs / day)
+  return `${days} dag${days > 1 ? 'er' : ''} siden`
+}
+
+function getDailyChecklistStats(checklists: Checklist[]): { total: number; completed: number } {
+  const daily = checklists.filter((item) => item.frequency === 'DAILY' && item.active)
+  return {
+    total: daily.length,
+    completed: daily.filter((item) => item.status === 'COMPLETED').length,
+  }
+}
 </script>
 
 <template>
@@ -121,7 +187,7 @@ const deviations = [
       </section>
 
       <TemperatureLogCard :rows="temperatures" />
-      <LatestDeviationCard :deviations="deviations" />
+      <LatestDeviationCard :deviations="latestDeviations" />
     </div>
   </AppLayout>
 </template>

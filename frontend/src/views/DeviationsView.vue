@@ -230,8 +230,9 @@ async function handleUpdate(payload: { id: number; data: UpdateDeviationRequest 
 async function handleDelete(id: number) {
   try {
     await deleteDeviation.mutateAsync(id)
-    const { [id]: _, ...rest } = statusOverrides.value
-    statusOverrides.value = rest
+    const nextOverrides = { ...statusOverrides.value }
+    delete nextOverrides[id]
+    statusOverrides.value = nextOverrides
     if (activeDeviation.value?.id === id) {
       activeDeviation.value = null
       detailsDialogOpen.value = false
@@ -296,8 +297,9 @@ async function handleStatusUpdate(payload: { id: number; status: DeviationStatus
 
     toast.success('Status oppdatert')
   } catch (error) {
-    const { [payload.id]: _, ...rest } = statusOverrides.value
-    statusOverrides.value = rest
+    const nextOverrides = { ...statusOverrides.value }
+    delete nextOverrides[payload.id]
+    statusOverrides.value = nextOverrides
     if (activeDeviation.value?.id === payload.id && previousStatus) {
       activeDeviation.value = {
         ...activeDeviation.value,

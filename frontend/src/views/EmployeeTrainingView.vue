@@ -18,69 +18,60 @@ const missing   = computed(() => trainings.value.filter(t => t.status === 'Mangl
 </script>
 
 <template>
-  <div class="max-w-3xl mx-auto px-4 sm:px-6 py-7 pb-16">
-    <div class="mb-7">
-      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Min opplæring</h1>
-      <p class="text-sm text-gray-400 mt-0.5">Oversikt over din opplæringsstatus</p>
+  <div class="page">
+
+    <!-- Header -->
+    <div class="header">
+      <h1 class="page-title">Min opplæring</h1>
+      <p class="page-sub">Oversikt over din opplæringsstatus</p>
     </div>
 
-    <div
-      v-if="me"
-      class="flex items-center gap-4 bg-white border border-stone-200 rounded-2xl px-5 py-4 mb-6"
-    >
+    <!-- Employee profile card -->
+    <div v-if="me" class="profile-card">
       <EmployeeAvatar :initials="me.initials" :color="me.color" size="lg" />
       <div>
-        <p class="text-lg font-bold text-gray-900">{{ me.name }}</p>
-        <p class="text-sm text-gray-400">{{ me.role }}</p>
+        <p class="profile-name">{{ me.name }}</p>
+        <p class="profile-role">{{ me.role }}</p>
       </div>
     </div>
 
-    <div class="grid grid-cols-3 gap-3 mb-6">
-      <StatCard label="Gyldige" :value="valid.length" value-class="text-emerald-700">
-        <Award class="text-emerald-500 mt-1" :size="18" />
+    <!-- Stat cards -->
+    <div class="stat-grid">
+      <StatCard label="Gyldige" :value="valid.length" value-class="val-green">
+        <Award class="stat-icon icon-green" :size="18" />
       </StatCard>
-      <StatCard label="Utløper snart" :value="expiring.length" value-class="text-amber-600">
-        <Clock class="text-amber-500 mt-1" :size="18" />
+      <StatCard label="Utløper snart" :value="expiring.length" value-class="val-amber">
+        <Clock class="stat-icon icon-amber" :size="18" />
       </StatCard>
-      <StatCard label="Mangler" :value="missing.length" value-class="text-red-600">
-        <AlertTriangle class="text-red-400 mt-1" :size="18" />
+      <StatCard label="Mangler" :value="missing.length" value-class="val-red">
+        <AlertTriangle class="stat-icon icon-red" :size="18" />
       </StatCard>
     </div>
 
-    <div class="bg-white border border-stone-200 rounded-2xl overflow-hidden">
-      <div v-if="!trainings.length" class="py-14 text-center text-sm text-gray-400">
+    <!-- Trainings table -->
+    <div class="table-card">
+      <div v-if="!trainings.length" class="empty-state">
         Ingen opplæring registrert.
       </div>
 
-      <div v-else class="overflow-x-auto">
-        <table class="w-full border-collapse">
+      <div v-else class="table-scroll">
+        <table class="data-table">
           <thead>
-          <tr class="border-b border-stone-100">
-            <th class="text-left text-xs font-semibold text-gray-400 px-5 py-3">Opplæringstype</th>
-            <th class="text-left text-xs font-semibold text-gray-400 px-5 py-3 hidden sm:table-cell">Fullført</th>
-            <th class="text-left text-xs font-semibold text-gray-400 px-5 py-3">Utløper</th>
-            <th class="text-left text-xs font-semibold text-gray-400 px-5 py-3">Status</th>
+          <tr>
+            <th>Opplæringstype</th>
+            <th class="hide-mobile">Fullført</th>
+            <th>Utløper</th>
+            <th>Status</th>
           </tr>
           </thead>
           <tbody>
-          <tr
-            v-for="t in trainings"
-            :key="t.id"
-            class="border-b border-stone-100 last:border-b-0 hover:bg-stone-50/60 transition-colors"
-          >
-            <td class="px-5 py-3.5 text-sm font-semibold text-gray-900">{{ t.type }}</td>
-            <td class="px-5 py-3.5 text-sm text-gray-600 hidden sm:table-cell">
-              {{ t.completed ?? '—' }}
-            </td>
-            <td
-              class="px-5 py-3.5 text-sm"
-              :class="t.status === 'Utløper snart' ? 'text-amber-600 font-semibold' : 'text-gray-600'"
-            >
+          <tr v-for="t in trainings" :key="t.id">
+            <td class="cell-bold">{{ t.type }}</td>
+            <td class="hide-mobile cell-text">{{ t.completed ?? '—' }}</td>
+            <td :class="['cell-text', t.status === 'Utløper snart' ? 'expires-soon' : '']">
               {{ t.expires ?? '—' }}
             </td>
-            <td class="px-5 py-3.5">
-              <StatusBadge :status="t.status" />
-            </td>
+            <td><StatusBadge :status="t.status" /></td>
           </tr>
           </tbody>
         </table>
@@ -89,3 +80,124 @@ const missing   = computed(() => trainings.value.filter(t => t.status === 'Mangl
 
   </div>
 </template>
+
+<style scoped>
+/* ── Layout ─────────────────────────────────────────────────────────────── */
+.page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 28px 24px 64px;
+  font-family: inherit;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+.header { margin-bottom: 28px; }
+
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.page-sub {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  margin: 2px 0 0;
+}
+
+/* ── Profile card ───────────────────────────────────────────────────────── */
+.profile-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #fff;
+  border: 1px solid #e7e5e4;
+  border-radius: 16px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+}
+
+.profile-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.profile-role {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  margin: 2px 0 0;
+}
+
+/* ── Stat grid ──────────────────────────────────────────────────────────── */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.stat-icon { margin-top: 4px; }
+.icon-green { color: #10b981; }
+.icon-amber { color: #f59e0b; }
+.icon-red   { color: #f87171; }
+
+/* ── Table card ─────────────────────────────────────────────────────────── */
+.table-card {
+  background: #fff;
+  border: 1px solid #e7e5e4;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.table-scroll { overflow-x: auto; }
+
+.empty-state {
+  padding: 56px 0;
+  text-align: center;
+  font-size: 0.875rem;
+  color: #9ca3af;
+}
+
+/* ── Table ──────────────────────────────────────────────────────────────── */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table thead tr {
+  border-bottom: 1px solid #f5f5f4;
+}
+
+.data-table th {
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #9ca3af;
+  padding: 12px 20px;
+  white-space: nowrap;
+}
+
+.data-table tbody tr {
+  border-bottom: 1px solid #fafaf9;
+  transition: background 0.12s;
+}
+.data-table tbody tr:last-child { border-bottom: none; }
+.data-table tbody tr:hover { background: #fafaf9; }
+
+.data-table td {
+  padding: 14px 20px;
+  vertical-align: middle;
+}
+
+.cell-bold { font-size: 0.875rem; font-weight: 600; color: #111827; }
+.cell-text { font-size: 0.875rem; color: #4b5563; }
+.expires-soon { color: #d97706; font-weight: 600; }
+
+@media (max-width: 640px) {
+  .hide-mobile { display: none; }
+}
+</style>

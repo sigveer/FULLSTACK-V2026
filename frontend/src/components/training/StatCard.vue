@@ -4,14 +4,54 @@ withDefaults(defineProps<{
   value: string | number
   subLabel?: string
   valueClass?: string
-}>(), { valueClass: 'text-gray-900' })
+}>(), { valueClass: '' })
 </script>
 
 <template>
-  <div class="bg-white border border-stone-200 rounded-2xl p-5">
-    <p class="text-xs text-gray-400 mb-1.5">{{ label }}</p>
-    <p :class="['text-4xl font-bold leading-none', valueClass]">{{ value }}</p>
+  <div class="stat-card">
+    <p class="stat-label">{{ label }}</p>
+    <p class="stat-value" :class="valueClass">{{ value }}</p>
     <slot />
-    <p v-if="subLabel" class="text-xs text-amber-600 mt-1">{{ subLabel }}</p>
+    <p v-if="subLabel" class="stat-sub">{{ subLabel }}</p>
   </div>
 </template>
+
+<style scoped>
+.stat-card {
+  background: #fff;
+  border: 1px solid #e7e5e4;
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.stat-label {
+  font-size: 0.78rem;
+  color: #9ca3af;
+  margin: 0 0 6px;
+}
+
+.stat-value {
+  font-size: 2.2rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #111827;
+  margin: 0;
+}
+
+/* value colour helpers – passed via :class from parent */
+:deep(.val-green), .val-green { color: #059669; }
+:deep(.val-amber), .val-amber { color: #d97706; }
+:deep(.val-red),   .val-red   { color: #dc2626; }
+
+/* these match the old Tailwind value-class names too */
+:deep(.text-emerald-700) { color: #059669; }
+:deep(.text-amber-600)   { color: #d97706; }
+:deep(.text-red-600)     { color: #dc2626; }
+:deep(.text-gray-900)    { color: #111827; }
+
+.stat-sub {
+  font-size: 0.78rem;
+  color: #d97706;
+  margin: 4px 0 0;
+}
+</style>

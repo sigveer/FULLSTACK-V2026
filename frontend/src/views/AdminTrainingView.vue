@@ -75,160 +75,124 @@ function confirmDelete(): void {
 </script>
 
 <template>
-  <div class="max-w-5xl mx-auto px-4 sm:px-6 py-7 pb-16">
-    <div class="flex items-start justify-between flex-wrap gap-3 mb-7">
-      <div>
-        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
-          Opplæring og sertifiseringer
-        </h1>
-        <p class="text-sm text-gray-400 mt-0.5">Oversikt over ansattes opplæringsstatus</p>
-      </div>
+  <div class="page">
 
-      <div class="flex items-center gap-2">
-        <button
-          v-if="!editMode"
-          class="flex items-center gap-1.5 border border-stone-200 bg-white text-gray-600 rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-stone-50 transition-colors"
-          @click="toggleEditMode"
-        >
+    <!-- Header -->
+    <div class="header">
+      <div>
+        <h1 class="page-title">Opplæring og sertifiseringer</h1>
+        <p class="page-sub">Oversikt over ansattes opplæringsstatus</p>
+      </div>
+      <div class="header-actions">
+        <button v-if="!editMode" class="btn btn-outline" @click="toggleEditMode">
           <Pencil :size="14" /> Rediger
         </button>
-
         <template v-else>
-          <button
-            v-if="selected.size > 0"
-            class="flex items-center gap-1.5 bg-red-600 text-white rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-red-700 transition-colors"
-            @click="deleteSelected"
-          >
+          <button v-if="selected.size > 0" class="btn btn-danger" @click="deleteSelected">
             <Trash2 :size="14" /> Slett ({{ selected.size }})
           </button>
-          <button
-            class="flex items-center gap-1.5 border border-stone-200 bg-white text-gray-500 rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-stone-50 transition-colors"
-            @click="toggleEditMode"
-          >
+          <button class="btn btn-outline" @click="toggleEditMode">
             <X :size="14" /> Avbryt
           </button>
         </template>
-
-        <button
-          v-if="!editMode"
-          class="flex items-center gap-1.5 border border-stone-200 bg-white text-indigo-600 rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-indigo-50 transition-colors"
-          @click="showRegister = true"
-        >
-          <Plus :size="16" /> Registrer opplæring
+        <button v-if="!editMode" class="btn btn-register" @click="showRegister = true">
+          <Plus :size="15" /> Registrer opplæring
         </button>
       </div>
     </div>
 
-    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+    <!-- Stat cards -->
+    <div class="stat-grid">
       <StatCard label="Totalt ansatte" :value="store.totalEmployees" />
-
       <StatCard
         label="Fullført opplæring"
         :value="`${store.completedCount} / ${store.totalEmployees}`"
-        value-class="text-emerald-700"
+        value-class="val-green"
       >
-        <div class="mt-2.5 h-1.5 bg-stone-100 rounded-full overflow-hidden">
+        <div class="progress-track">
           <div
-            class="h-full bg-emerald-600 rounded-full transition-all duration-500"
+            class="progress-bar"
             :style="{ width: (store.completedCount / store.totalEmployees * 100) + '%' }"
           />
         </div>
       </StatCard>
-
       <StatCard
         label="Utløper snart"
         :value="store.expiringSoonCount"
-        value-class="text-amber-600"
+        value-class="val-amber"
         sub-label="Innen 30 dager"
-        class="col-span-2 sm:col-span-1"
       />
     </div>
 
+    <!-- Filter -->
     <FilterPanel
       :types="store.trainingTypes"
       v-model:modelType="filterType"
       v-model:modelStatus="filterStatus"
     />
 
-    <div class="bg-white border border-stone-200 rounded-2xl overflow-hidden">
-      <div v-if="!filtered.length" class="py-16 text-center text-sm text-gray-400">
+    <!-- Table -->
+    <div class="table-card">
+      <div v-if="!filtered.length" class="empty-state">
         Ingen resultater matcher filteret.
       </div>
 
-      <div v-else class="overflow-x-auto">
-        <table class="w-full border-collapse">
+      <div v-else class="table-scroll">
+        <table class="data-table">
           <thead>
-          <tr class="border-b border-stone-100">
-            <th v-if="editMode" class="w-12 px-4 py-3">
+          <tr>
+            <th v-if="editMode" class="col-check">
               <input
                 type="checkbox"
                 :checked="allSelected"
-                class="w-4 h-4 rounded cursor-pointer accent-emerald-600"
                 @change="toggleSelectAll"
               />
             </th>
-            <th class="text-left text-xs font-semibold text-gray-400 px-5 py-3">Ansatt</th>
-            <th class="text-left text-xs font-semibold text-gray-400 px-5 py-3 hidden md:table-cell">Opplæringstype</th>
-            <th class="text-left text-xs font-semibold text-gray-400 px-5 py-3 hidden md:table-cell">Fullført</th>
-            <th class="text-left text-xs font-semibold text-gray-400 px-5 py-3">Utløper</th>
-            <th class="text-left text-xs font-semibold text-gray-400 px-5 py-3">Status</th>
-            <th v-if="!editMode" class="w-10 px-3 py-3" />
+            <th>Ansatt</th>
+            <th class="hide-mobile">Opplæringstype</th>
+            <th class="hide-mobile">Fullført</th>
+            <th>Utløper</th>
+            <th>Status</th>
+            <th v-if="!editMode" class="col-action" />
           </tr>
           </thead>
-
           <tbody>
           <tr
             v-for="row in filtered"
             :key="row.id"
-            :class="[
-                'border-b border-stone-100 last:border-b-0 transition-colors',
-                editMode ? 'cursor-pointer' : '',
-                editMode && selected.has(row.id)
-                  ? 'bg-red-50/60'
-                  : 'hover:bg-stone-50/60'
-              ]"
+            :class="{ 'row-selected': editMode && selected.has(row.id), 'row-clickable': editMode }"
             @click="editMode && toggleSelect(row.id)"
           >
-            <td v-if="editMode" class="px-4 py-3.5">
+            <td v-if="editMode" class="col-check">
               <input
                 type="checkbox"
                 :checked="selected.has(row.id)"
-                class="w-4 h-4 rounded cursor-pointer accent-emerald-600"
                 @click.stop
                 @change="toggleSelect(row.id)"
               />
             </td>
 
-            <td class="px-5 py-3.5">
-              <div class="flex items-center gap-2.5">
+            <td>
+              <div class="employee-cell">
                 <EmployeeAvatar :initials="row.employee.initials" :color="row.employee.color" size="sm" />
                 <div>
-                  <p class="text-sm font-semibold text-gray-900">{{ row.employee.name }}</p>
-                  <p class="text-xs text-gray-400">{{ row.employee.role }}</p>
+                  <p class="emp-name">{{ row.employee.name }}</p>
+                  <p class="emp-role">{{ row.employee.role }}</p>
                 </div>
               </div>
             </td>
 
-            <td class="px-5 py-3.5 text-sm text-gray-600 hidden md:table-cell">{{ row.type }}</td>
-            <td class="px-5 py-3.5 text-sm text-gray-600 hidden md:table-cell">{{ row.completed ?? '—' }}</td>
+            <td class="hide-mobile cell-text">{{ row.type }}</td>
+            <td class="hide-mobile cell-text">{{ row.completed ?? '—' }}</td>
 
-            <td
-              class="px-5 py-3.5 text-sm"
-              :class="row.status === 'Utløper snart' ? 'text-amber-600 font-semibold' : 'text-gray-600'"
-            >
+            <td :class="['cell-text', row.status === 'Utløper snart' ? 'expires-soon' : '']">
               {{ row.expires ?? '—' }}
             </td>
 
-            <td class="px-5 py-3.5">
-              <StatusBadge :status="row.status" />
-            </td>
+            <td><StatusBadge :status="row.status" /></td>
 
-            <td v-if="!editMode" class="px-3 py-3.5">
-              <button
-                class="w-7 h-7 rounded-lg flex items-center justify-center text-gray-300 hover:text-gray-600 hover:bg-stone-100 transition-colors"
-                aria-label="Rediger"
-                @click.stop="openEdit(row)"
-              >
+            <td v-if="!editMode" class="col-action">
+              <button class="icon-btn" aria-label="Rediger" @click.stop="openEdit(row)">
                 <Pencil :size="14" />
               </button>
             </td>
@@ -238,6 +202,7 @@ function confirmDelete(): void {
       </div>
     </div>
 
+    <!-- Modals -->
     <EditTrainingModal
       v-model="editModal"
       :training="editRow"
@@ -245,33 +210,20 @@ function confirmDelete(): void {
     />
     <RegisterTrainingModal v-model="showRegister" />
 
+    <!-- Delete confirm -->
     <Teleport to="body">
-      <div
-        v-if="deleteConfirmRow"
-        class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
-        @click.self="deleteConfirmRow = null"
-      >
-        <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6">
-          <h2 class="text-base font-bold text-gray-900 mb-1">Slett opplæring</h2>
-          <p class="text-sm text-gray-500 mb-5">
+      <div v-if="deleteConfirmRow" class="overlay" @click.self="deleteConfirmRow = null">
+        <div class="dialog">
+          <h2 class="dialog-title">Slett opplæring</h2>
+          <p class="dialog-body">
             Er du sikker på at du vil slette
             <strong>{{ deleteConfirmRow.type }}</strong> for
             <strong>{{ deleteConfirmRow.employee.name }}</strong>?
             Dette kan ikke angres.
           </p>
-          <div class="flex justify-end gap-2">
-            <button
-              class="border border-stone-200 rounded-lg px-4 py-2 text-sm text-gray-500 hover:bg-stone-50 transition-colors"
-              @click="deleteConfirmRow = null"
-            >
-              Avbryt
-            </button>
-            <button
-              class="bg-red-600 text-white rounded-lg px-4 py-2 text-sm font-semibold hover:bg-red-700 transition-colors"
-              @click="confirmDelete"
-            >
-              Slett
-            </button>
+          <div class="dialog-actions">
+            <button class="btn btn-outline" @click="deleteConfirmRow = null">Avbryt</button>
+            <button class="btn btn-danger" @click="confirmDelete">Slett</button>
           </div>
         </div>
       </div>
@@ -279,3 +231,258 @@ function confirmDelete(): void {
 
   </div>
 </template>
+
+<style scoped>
+/* ── Layout ─────────────────────────────────────────────────────────────── */
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 28px 24px 64px;
+  font-family: inherit;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.page-sub {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  margin: 2px 0 0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  border: none;
+}
+
+.btn-outline {
+  background: #fff;
+  border: 1px solid #e7e5e4;
+  color: #4b5563;
+}
+.btn-outline:hover { background: #f5f5f4; }
+
+.btn-register {
+  background: #fff;
+  border: 1px solid #e7e5e4;
+  color: #4f46e5;
+}
+.btn-register:hover { background: #eef2ff; }
+
+.btn-danger {
+  background: #dc2626;
+  border: 1px solid #dc2626;
+  color: #fff;
+}
+.btn-danger:hover { background: #b91c1c; }
+
+/* ── Stat grid ──────────────────────────────────────────────────────────── */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 600px) {
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Progress bar (inside StatCard slot) */
+.progress-track {
+  margin-top: 10px;
+  height: 6px;
+  background: #f0fdf4;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress-bar {
+  height: 100%;
+  background: #059669;
+  border-radius: 999px;
+  transition: width 0.5s ease;
+}
+
+/* ── Table card ─────────────────────────────────────────────────────────── */
+.table-card {
+  background: #fff;
+  border: 1px solid #e7e5e4;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.table-scroll { overflow-x: auto; }
+
+.empty-state {
+  padding: 64px 0;
+  text-align: center;
+  font-size: 0.875rem;
+  color: #9ca3af;
+}
+
+/* ── Table ──────────────────────────────────────────────────────────────── */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table thead tr {
+  border-bottom: 1px solid #f5f5f4;
+}
+
+.data-table th {
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #9ca3af;
+  padding: 12px 20px;
+  white-space: nowrap;
+}
+
+.data-table tbody tr {
+  border-bottom: 1px solid #fafaf9;
+  transition: background 0.12s;
+}
+.data-table tbody tr:last-child { border-bottom: none; }
+.data-table tbody tr:hover { background: #fafaf9; }
+
+.data-table td {
+  padding: 14px 20px;
+  vertical-align: middle;
+}
+
+/* Checkbox column */
+.col-check {
+  width: 44px;
+  padding-left: 16px;
+  padding-right: 8px;
+}
+.col-check input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #059669;
+}
+
+/* Action column */
+.col-action { width: 40px; padding: 0 12px; }
+
+/* Selected row */
+.row-selected { background: #fff1f2 !important; }
+.row-clickable { cursor: pointer; }
+
+/* Cell helpers */
+.cell-text { font-size: 0.875rem; color: #4b5563; }
+.expires-soon { color: #d97706; font-weight: 600; }
+
+/* Employee cell */
+.employee-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.emp-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+.emp-role {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin: 0;
+}
+
+/* Icon button */
+.icon-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #d1d5db;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.icon-btn:hover { background: #f5f5f4; color: #374151; }
+
+/* Hide on mobile */
+@media (max-width: 768px) {
+  .hide-mobile { display: none; }
+}
+
+/* ── Overlay / Dialog ───────────────────────────────────────────────────── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 16px;
+}
+
+.dialog {
+  background: #fff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 380px;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+}
+
+.dialog-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 6px;
+}
+
+.dialog-body {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+</style>

@@ -8,12 +8,34 @@ withDefaults(defineProps<{
 
 <template>
   <div
-    :class="[
-      'rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0',
-      size === 'lg' ? 'w-13 h-13 text-lg' : 'w-9 h-9 text-xs'
-    ]"
+    class="avatar"
+    :class="size === 'lg' ? 'avatar-lg' : 'avatar-sm'"
     :style="{ background: color }"
   >
     {{ initials }}
   </div>
 </template>
+
+<style scoped>
+.avatar {
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.avatar-sm {
+  width: 36px;
+  height: 36px;
+  font-size: 0.75rem;
+}
+
+.avatar-lg {
+  width: 52px;
+  height: 52px;
+  font-size: 1.1rem;
+}
+</style>

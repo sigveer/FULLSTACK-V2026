@@ -25,7 +25,10 @@ const missing   = computed(() => trainings.value.filter(t => t.status === 'Mangl
       <p class="text-sm text-gray-400 mt-0.5">Oversikt over din opplæringsstatus</p>
     </div>
 
-    <div class="flex items-center gap-4 bg-white border border-stone-200 rounded-2xl px-5 py-4 mb-6">
+    <div
+      v-if="me"
+      class="flex items-center gap-4 bg-white border border-stone-200 rounded-2xl px-5 py-4 mb-6"
+    >
       <EmployeeAvatar :initials="me.initials" :color="me.color" size="lg" />
       <div>
         <p class="text-lg font-bold text-gray-900">{{ me.name }}</p>

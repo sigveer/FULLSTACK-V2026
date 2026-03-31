@@ -2,15 +2,14 @@
 import { computed } from 'vue'
 import { Award, Clock, AlertTriangle } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
-import { useTrainingStore } from '@/stores/training'
+import { useTrainingStore } from '@/stores/training.ts'
 import EmployeeAvatar from '@/components/training/EmployeeAvatar.vue'
-import StatusBadge from '@/components/training/Statusbadge.vue'
-import StatCard from '@/components/training/Statcard.vue'
+import StatusBadge from '@/components/training/StatusBadge.vue'
+import StatCard from '@/components/training/StatCard.vue'
 
 const auth  = useAuthStore()
 const store = useTrainingStore()
 
-// Falls back to employee id=5 (Ny Bansen) for demo
 const me        = computed(() => store.employees.find(e => e.id === auth.user?.id) ?? store.employees[4])
 const trainings = computed(() => me.value?.trainings ?? [])
 const valid     = computed(() => trainings.value.filter(t => t.status === 'Gyldig'))
@@ -26,7 +25,6 @@ const missing   = computed(() => trainings.value.filter(t => t.status === 'Mangl
       <p class="text-sm text-gray-400 mt-0.5">Oversikt over din opplæringsstatus</p>
     </div>
 
-    <!-- Hero -->
     <div class="flex items-center gap-4 bg-white border border-stone-200 rounded-2xl px-5 py-4 mb-6">
       <EmployeeAvatar :initials="me.initials" :color="me.color" size="lg" />
       <div>
@@ -35,7 +33,6 @@ const missing   = computed(() => trainings.value.filter(t => t.status === 'Mangl
       </div>
     </div>
 
-    <!-- Stats -->
     <div class="grid grid-cols-3 gap-3 mb-6">
       <StatCard label="Gyldige" :value="valid.length" value-class="text-emerald-700">
         <Award class="text-emerald-500 mt-1" :size="18" />
@@ -48,7 +45,6 @@ const missing   = computed(() => trainings.value.filter(t => t.status === 'Mangl
       </StatCard>
     </div>
 
-    <!-- Training list -->
     <div class="bg-white border border-stone-200 rounded-2xl overflow-hidden">
       <div v-if="!trainings.length" class="py-14 text-center text-sm text-gray-400">
         Ingen opplæring registrert.

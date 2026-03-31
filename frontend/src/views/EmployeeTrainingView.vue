@@ -18,9 +18,8 @@ const missing   = computed(() => trainings.value.filter(t => t.status === 'Mangl
 </script>
 
 <template>
-  <div class="max-w-2xl mx-auto px-4 sm:px-6 py-7 pb-16">
-
-    <div class="mb-6">
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 py-7 pb-16">
+    <div class="mb-7">
       <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Min opplæring</h1>
       <p class="text-sm text-gray-400 mt-0.5">Oversikt over din opplæringsstatus</p>
     </div>
@@ -52,23 +51,39 @@ const missing   = computed(() => trainings.value.filter(t => t.status === 'Mangl
       <div v-if="!trainings.length" class="py-14 text-center text-sm text-gray-400">
         Ingen opplæring registrert.
       </div>
-      <div
-        v-for="t in trainings"
-        :key="t.id"
-        class="flex items-center justify-between gap-3 px-5 py-4 border-b border-stone-100 last:border-b-0 flex-wrap"
-      >
-        <p class="text-sm font-semibold text-gray-900 flex-1 min-w-36">{{ t.type }}</p>
-        <div class="flex gap-4 text-xs text-gray-500 flex-wrap">
-          <span v-if="t.completed">Fullført: <strong class="text-gray-700">{{ t.completed }}</strong></span>
-          <span v-else class="text-gray-300">Ikke fullført</span>
-          <span
-            v-if="t.expires"
-            :class="t.status === 'Utløper snart' ? 'text-amber-600 font-semibold' : ''"
+
+      <div v-else class="overflow-x-auto">
+        <table class="w-full border-collapse">
+          <thead>
+          <tr class="border-b border-stone-100">
+            <th class="text-left text-xs font-semibold text-gray-400 px-5 py-3">Opplæringstype</th>
+            <th class="text-left text-xs font-semibold text-gray-400 px-5 py-3 hidden sm:table-cell">Fullført</th>
+            <th class="text-left text-xs font-semibold text-gray-400 px-5 py-3">Utløper</th>
+            <th class="text-left text-xs font-semibold text-gray-400 px-5 py-3">Status</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr
+            v-for="t in trainings"
+            :key="t.id"
+            class="border-b border-stone-100 last:border-b-0 hover:bg-stone-50/60 transition-colors"
           >
-            Utløper: <strong>{{ t.expires }}</strong>
-          </span>
-        </div>
-        <StatusBadge :status="t.status" />
+            <td class="px-5 py-3.5 text-sm font-semibold text-gray-900">{{ t.type }}</td>
+            <td class="px-5 py-3.5 text-sm text-gray-600 hidden sm:table-cell">
+              {{ t.completed ?? '—' }}
+            </td>
+            <td
+              class="px-5 py-3.5 text-sm"
+              :class="t.status === 'Utløper snart' ? 'text-amber-600 font-semibold' : 'text-gray-600'"
+            >
+              {{ t.expires ?? '—' }}
+            </td>
+            <td class="px-5 py-3.5">
+              <StatusBadge :status="t.status" />
+            </td>
+          </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 

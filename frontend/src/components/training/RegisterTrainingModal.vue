@@ -1,217 +1,188 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { X, Check, ChevronDown } from 'lucide-vue-next'
-import { useTrainingStore } from '@/stores/training'
+import { ref, watch, computed } from 'vue'
+import axios from 'axios'
+import { toast } from 'vue-sonner'
+import Dialog from '@/components/ui/dialog/Dialog.vue'
+import DialogContent from '@/components/ui/dialog/DialogContent.vue'
+import DialogDescription from '@/components/ui/dialog/DialogDescription.vue'
+import DialogFooter from '@/components/ui/dialog/DialogFooter.vue'
+import DialogHeader from '@/components/ui/dialog/DialogHeader.vue'
+import DialogTitle from '@/components/ui/dialog/DialogTitle.vue'
 import Button from '@/components/ui/button/Button.vue'
+import Input from '@/components/ui/input/Input.vue'
+import Textarea from '@/components/ui/textarea/Textarea.vue'
+import {
+  useCreateTrainingLogMutation,
+  useOrganizationMembersQuery,
+} from '@/composables/useTrainingLogs'
+import type { TrainingStatus } from '@/types/training'
 
-defineProps<{ modelValue: boolean }>()
-const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
-const store = useTrainingStore()
+const props = defineProps<{ open: boolean }>()
+const emits = defineEmits<{ (e: 'update:open', value: boolean): void }>()
 
-const form = ref({
-  employeeId: null as number | null,
-  type: '',
-  completed: '',
-  expires: '',
-  status: 'Fullført' as 'Fullført' | 'Ikke-fullført',
+const createMutation = useCreateTrainingLogMutation()
+const canManage = computed(() => true)
+const membersQuery = useOrganizationMembersQuery(canManage)
+const members = computed(() => membersQuery.data.value ?? [])
+
+const employeeUserId = ref<string>('')
+const title = ref('')
+const description = ref('')
+const completedAt = ref('')
+const expiresAt = ref('')
+const status = ref<TrainingStatus>('COMPLETED')
+const errorMessage = ref('')
+
+const statusOptions: Array<{ value: TrainingStatus; label: string }> = [
+  { value: 'COMPLETED', label: 'Fullført' },
+  { value: 'NOT_COMPLETED', label: 'Ikke fullført' },
+]
+
+watch(() => props.open, (isOpen) => {
+  if (isOpen) {
+    employeeUserId.value = ''
+    title.value = ''
+    description.value = ''
+    completedAt.value = ''
+    expiresAt.value = ''
+    status.value = 'COMPLETED'
+    errorMessage.value = ''
+  }
 })
 
-const errors = ref<Record<string, string>>({})
-
-const employees = computed(() =>
-  store.employees ?? []
-)
-
-function validate(): boolean {
-  const e: Record<string, string> = {}
-  if (!form.value.employeeId) e.employeeId = 'Velg en ansatt'
-  if (!form.value.type.trim()) e.type = 'Opplæringstype er påkrevd'
-  errors.value = e
-  return Object.keys(e).length === 0
+function closeDialog() {
+  emits('update:open', false)
 }
 
-function close(): void {
-  emit('update:modelValue', false)
-  setTimeout(reset, 300)
+function toIso(dateStr: string): string | undefined {
+  if (!dateStr) return undefined
+  return new Date(dateStr + 'T00:00:00Z').toISOString()
 }
 
-function reset(): void {
-  form.value = { employeeId: null, type: '', completed: '', expires: '', status: 'Fullført' }
-  errors.value = {}
-}
+async function handleSubmit() {
+  const trimmedTitle = title.value.trim()
+  if (!employeeUserId.value) {
+    errorMessage.value = 'Velg en ansatt.'
+    return
+  }
+  if (!trimmedTitle) {
+    errorMessage.value = 'Opplæringstype er påkrevd.'
+    return
+  }
+  errorMessage.value = ''
 
-function save(): void {
-  if (!validate()) return
-  store.addTraining(form.value.employeeId!, {
-    type: form.value.type.trim(),
-    completed: form.value.completed || null,
-    expires: form.value.expires || null,
-    status: form.value.status === 'Ikke-fullført' ? 'Mangler' : 'Gyldig',
-  })
-  close()
+  try {
+    await createMutation.mutateAsync({
+      employeeUserId: Number(employeeUserId.value),
+      title: trimmedTitle,
+      description: description.value.trim() || undefined,
+      completedAt: toIso(completedAt.value),
+      expiresAt: toIso(expiresAt.value),
+      status: status.value,
+    })
+    toast.success('Opplæring registrert')
+    closeDialog()
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const msg = error.response?.data?.error?.message
+      if (typeof msg === 'string' && msg.trim()) {
+        toast.error(msg)
+        return
+      }
+    }
+    toast.error('Kunne ikke registrere opplæring')
+  }
 }
 </script>
 
 <template>
-  <Teleport to="body">
-    <Transition name="modal">
-      <div v-if="modelValue" class="overlay" @click.self="close">
-        <div class="modal">
-          <div class="modal-header">
-            <div class="modal-header-left">
-              <div class="modal-icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 5v14M5 12h14"/>
-                </svg>
-              </div>
-              <div>
-                <h2 class="modal-title">Registrer opplæring</h2>
-                <p class="modal-sub">Legg til ny opplæring for en ansatt</p>
-              </div>
-            </div>
-            <Button variant="ghost" size="icon-sm" class="close-btn" @click="close" aria-label="Lukk">
-              <X :size="16" />
-            </Button>
-          </div>
+  <Dialog :open="open" @update:open="(value) => emits('update:open', value)">
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Registrer opplæring</DialogTitle>
+        <DialogDescription>Legg til ny opplæring for en ansatt</DialogDescription>
+      </DialogHeader>
 
-          <div class="modal-body">
-            <div class="field-group" :class="{ 'has-error': errors.employeeId }">
-              <label class="field-label">Ansatt <span class="required">*</span></label>
-              <div class="select-wrapper">
-                <select v-model="form.employeeId" class="form-input form-select">
-                  <option :value="null" disabled>Velg ansatt…</option>
-                  <option v-for="emp in employees" :key="emp.id" :value="emp.id">
-                    {{ emp.name }}
-                  </option>
-                </select>
-                <ChevronDown :size="14" class="select-icon" />
-              </div>
-              <span v-if="errors.employeeId" class="error-msg">{{ errors.employeeId }}</span>
-            </div>
-            <div class="field-group" :class="{ 'has-error': errors.type }">
-              <label class="field-label">Opplæringstype <span class="required">*</span></label>
-              <input
-                v-model="form.type"
-                class="form-input"
-                placeholder="F.eks. Brannvern, HMS, Førstehjelp…"
-                @input="delete errors.type"
-              />
-              <span v-if="errors.type" class="error-msg">{{ errors.type }}</span>
-            </div>
-            <div class="field-row">
-              <div class="field-group">
-                <label class="field-label">Fullført dato</label>
-                <input v-model="form.completed" class="form-input" placeholder="dd.mm.åååå" />
-              </div>
-              <div class="field-group">
-                <label class="field-label">Utløpsdato</label>
-                <input v-model="form.expires" class="form-input" placeholder="dd.mm.åååå" />
-              </div>
-            </div>
-            <div class="field-group">
-              <label class="field-label">Status</label>
-              <div class="status-pills">
-                <button
-                  v-for="s in ['Fullført', 'Ikke-fullført']"
-                  :key="s"
-                  type="button"
-                  :class="['status-pill', `pill-${s === 'Ikke-fullført' ? 'ikke-fullfort' : 'fullfort'}`, { active: form.status === s }]"
-                  @click="form.status = s as typeof form.status"
-                >
-                  <span class="pill-dot" />
-                  {{ s }}
-                </button>
-              </div>
-            </div>
+      <form class="form" @submit.prevent="handleSubmit">
+        <label class="field">
+          <span>Ansatt *</span>
+          <select v-model="employeeUserId" class="select-field">
+            <option value="" disabled>Velg ansatt…</option>
+            <option v-for="m in members" :key="m.userId" :value="String(m.userId)">
+              {{ m.userFullName }}
+            </option>
+          </select>
+        </label>
 
-          </div>
+        <label class="field">
+          <span>Opplæringstype *</span>
+          <Input v-model="title" placeholder="F.eks. Brannvern, HMS, Førstehjelp…" />
+        </label>
 
-          <div class="modal-footer">
-            <p class="required-note"><span class="required">*</span> Påkrevde felt</p>
-            <div class="footer-right">
-              <Button variant="destructive" size="sm" @click="close">Avbryt</Button>
-              <Button variant="default" size="sm" @click="save">
-                <Check :size="14" /> Registrer
-              </Button>
-            </div>
-          </div>
+        <label class="field">
+          <span>Beskrivelse</span>
+          <Textarea v-model="description" rows="3" placeholder="Valgfri beskrivelse..." />
+        </label>
 
+        <div class="field-row">
+          <label class="field">
+            <span>Fullført dato</span>
+            <Input v-model="completedAt" type="date" />
+          </label>
+          <label class="field">
+            <span>Utløpsdato</span>
+            <Input v-model="expiresAt" type="date" />
+          </label>
         </div>
-      </div>
-    </Transition>
-  </Teleport>
+
+        <div class="field">
+          <span>Status *</span>
+          <div class="segmented-grid segmented-grid--2">
+            <button
+              v-for="opt in statusOptions"
+              :key="opt.value"
+              type="button"
+              class="segment-button"
+              :class="[
+                `segment-button--${opt.value.toLowerCase()}`,
+                { 'segment-button--active': status === opt.value },
+              ]"
+              @click="status = opt.value"
+            >
+              {{ opt.label }}
+            </button>
+          </div>
+        </div>
+
+        <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+
+        <DialogFooter>
+          <Button type="button" variant="outline" @click="closeDialog">Avbryt</Button>
+          <Button type="submit" :disabled="createMutation.isPending.value">
+            {{ createMutation.isPending.value ? 'Registrerer...' : 'Registrer opplæring' }}
+          </Button>
+        </DialogFooter>
+      </form>
+    </DialogContent>
+  </Dialog>
 </template>
 
 <style scoped>
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(2px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-  padding: 16px;
-}
-
-.modal {
-  background: #ffffff;
-  border-radius: 20px;
-  width: 100%;
-  max-width: 460px;
-  box-shadow:
-    0 0 0 1px rgba(0,0,0,0.06),
-    0 8px 24px rgba(0,0,0,0.10),
-    0 24px 64px rgba(0,0,0,0.12);
-  overflow: hidden;
-}
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 24px 18px;
-  border-bottom: 1px solid #f0eeee;
-}
-
-.modal-header-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.modal-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: #f5f3ff;
-  color: #7c3aed;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.modal-title {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: #111827;
-  margin: 0;
-  letter-spacing: -0.01em;
-}
-
-.modal-sub {
-  font-size: 0.75rem;
-  color: #9ca3af;
-  margin: 1px 0 0;
-}
-
-.modal-body {
-  padding: 20px 24px;
+.form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field span {
+  font-size: 0.92rem;
+  font-weight: 600;
 }
 
 .field-row {
@@ -220,142 +191,62 @@ function save(): void {
   gap: 12px;
 }
 
-.field-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.field-label {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.required { color: #7c3aed; }
-
-.form-input {
-  border: 1.5px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 9px 12px;
-  font-size: 0.875rem;
-  color: #1f2937;
-  background: #fafafa;
-  outline: none;
-  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+.select-field {
   width: 100%;
-  box-sizing: border-box;
-  font-family: inherit;
-}
-.form-input:focus {
-  border-color: #7c3aed;
-  background: #fff;
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.08);
-}
-.form-input::placeholder { color: #d1d5db; }
-
-.has-error .form-input {
-  border-color: #fca5a5;
-  background: #fff5f5;
-}
-.has-error .form-input:focus {
-  border-color: #ef4444;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--input));
+  background: hsl(var(--card));
+  padding: 0 0.75rem;
+  font-size: 0.875rem;
 }
 
-.error-msg {
-  font-size: 0.72rem;
-  color: #ef4444;
-  font-weight: 500;
+.select-field:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2);
+  border-color: hsl(var(--primary) / 0.5);
 }
 
-.select-wrapper {
-  position: relative;
-}
-.form-select {
-  appearance: none;
-  padding-right: 32px;
-  cursor: pointer;
-}
-.select-icon {
-  position: absolute;
-  right: 11px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #9ca3af;
-  pointer-events: none;
-}
-
-.status-pills {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  cursor: pointer;
-  border: 1.5px solid transparent;
-  background: #f3f4f6;
-  color: #6b7280;
-  transition: all 0.14s;
-  font-family: inherit;
-}
-
-.pill-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0.5;
-  transition: opacity 0.14s;
-}
-
-.pill-fullfort { color: #059669; }
-.pill-fullfort:hover { background: #ecfdf5; border-color: #a7f3d0; }
-.pill-fullfort.active { background: #ecfdf5; border-color: #6ee7b7; color: #059669; }
-.pill-fullfort.active .pill-dot { opacity: 1; }
-
-.pill-ikke-fullfort { color: #dc2626; }
-.pill-ikke-fullfort:hover { background: #fff5f5; border-color: #fca5a5; }
-.pill-ikke-fullfort.active { background: #fff5f5; border-color: #fca5a5; color: #dc2626; }
-.pill-ikke-fullfort.active .pill-dot { opacity: 1; }
-
-.modal-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 24px 20px;
-  border-top: 1px solid #f0eeee;
-}
-
-.required-note {
-  font-size: 0.75rem;
-  color: #9ca3af;
-  margin: 0;
-}
-
-.footer-right {
-  display: flex;
-  align-items: center;
+.segmented-grid {
+  display: grid;
   gap: 8px;
 }
 
-.modal-enter-active,
-.modal-leave-active { transition: opacity 0.2s ease; }
-.modal-enter-active .modal,
-.modal-leave-active .modal { transition: transform 0.22s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.2s ease; }
-.modal-enter-from,
-.modal-leave-to { opacity: 0; }
-.modal-enter-from .modal { transform: scale(0.96) translateY(8px); opacity: 0; }
-.modal-leave-to .modal { transform: scale(0.96) translateY(4px); opacity: 0; }
+.segmented-grid--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
 
+.segment-button {
+  border: 1px solid hsl(var(--input));
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  border-radius: var(--radius-md);
+  height: 2.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+}
+
+.segment-button--active {
+  border-color: hsl(var(--primary));
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+.segment-button--completed.segment-button--active {
+  border-color: #71a66a;
+  background: #dcebd8;
+  color: #2f6f34;
+}
+
+.segment-button--not_completed.segment-button--active {
+  border-color: #c95d5d;
+  background: #f4e0e0;
+  color: #902324;
+}
+
+.error-message {
+  color: hsl(var(--destructive));
+  font-size: 0.86rem;
+}
 </style>

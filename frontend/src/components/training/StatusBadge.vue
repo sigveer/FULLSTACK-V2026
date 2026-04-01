@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import type { Training } from '@/stores/training'
-defineProps<{ status: Training['status'] }>()
+defineProps<{ status: string }>()
 </script>
 
 <template>
   <span class="badge" :class="{
     'badge-green':  status === 'Gyldig',
     'badge-amber':  status === 'Utløper snart',
-    'badge-red':    status === 'Mangler',
+    'badge-red':    status === 'Mangler' || status === 'Utgått',
   }">
     {{ status }}
   </span>

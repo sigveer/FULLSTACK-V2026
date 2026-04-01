@@ -1,504 +1,686 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { Plus, Pencil, X, Trash2 } from 'lucide-vue-next'
-import type { TrainingRow } from '@/stores/training'
-import { useTrainingStore } from '@/stores/training'
-import StatCard from '@/components/training/StatCard.vue'
+import { computed, ref } from 'vue'
+import axios from 'axios'
+import { MoreVertical, ArrowUpDown, Search, Plus, Pencil, Trash2, AlertTriangle } from 'lucide-vue-next'
+import { toast } from 'vue-sonner'
+import { Separator } from '@/components/ui/separator'
+import { SidebarTrigger } from '@/components/ui/sidebar'
+import Button from '@/components/ui/button/Button.vue'
+import Checkbox from '@/components/ui/checkbox/Checkbox.vue'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableEmpty,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
+import AlertDialog from '@/components/ui/alert-dialog/AlertDialog.vue'
+import AlertDialogAction from '@/components/ui/alert-dialog/AlertDialogAction.vue'
+import AlertDialogCancel from '@/components/ui/alert-dialog/AlertDialogCancel.vue'
+import AlertDialogContent from '@/components/ui/alert-dialog/AlertDialogContent.vue'
+import AlertDialogDescription from '@/components/ui/alert-dialog/AlertDialogDescription.vue'
+import AlertDialogFooter from '@/components/ui/alert-dialog/AlertDialogFooter.vue'
+import AlertDialogHeader from '@/components/ui/alert-dialog/AlertDialogHeader.vue'
+import AlertDialogTitle from '@/components/ui/alert-dialog/AlertDialogTitle.vue'
 import StatusBadge from '@/components/training/StatusBadge.vue'
-import EmployeeAvatar from '@/components/training/EmployeeAvatar.vue'
-import FilterPanel from '@/components/training/FilterPanel.vue'
-import EditTrainingModal from '@/components/training/EditTrainingModal.vue'
 import RegisterTrainingModal from '@/components/training/RegisterTrainingModal.vue'
+import EditTrainingModal from '@/components/training/EditTrainingModal.vue'
+import {
+  useTrainingLogsQuery,
+  useDeleteTrainingLogMutation,
+} from '@/composables/useTrainingLogs'
+import type { TrainingLog, TrainingStatus } from '@/types/training'
 
-const store = useTrainingStore()
+const trainingLogsQuery = useTrainingLogsQuery()
+const deleteTrainingLog = useDeleteTrainingLogMutation()
 
-const filterType   = ref('')
-const filterStatus = ref('')
+const trainingLogs = computed(() => trainingLogsQuery.data.value ?? [])
 
-type SortDir = 'none' | 'asc' | 'desc'
-const nameSortDir = ref<SortDir>('none')
+// ── Search ──
+const search = ref('')
 
-function cycleNameSort(): void {
-  if (nameSortDir.value === 'none') { nameSortDir.value = 'asc' }
-  else if (nameSortDir.value === 'asc') { nameSortDir.value = 'desc' }
-  else { nameSortDir.value = 'none' }
+// ── Sorting ──
+type SortField = 'employee' | 'title' | 'completed' | 'expires' | 'status'
+type SortDir = 'asc' | 'desc'
+const sortField = ref<SortField>('employee')
+const sortDir = ref<SortDir>('asc')
+
+function toggleSort(field: SortField) {
+  if (sortField.value === field) {
+    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortField.value = field
+    sortDir.value = 'asc'
+  }
 }
 
-const filtered = computed(() => {
-  const rows = store.allTrainings.filter(t =>
-    (!filterType.value   || t.type   === filterType.value) &&
-    (!filterStatus.value || t.status === filterStatus.value)
-  )
-  if (nameSortDir.value === 'none') return rows
-  return [...rows].sort((a, b) => {
-    const cmp = a.employee.name.localeCompare(b.employee.name, 'nb')
-    return nameSortDir.value === 'asc' ? cmp : -cmp
+const statusLabel: Record<TrainingStatus, string> = {
+  COMPLETED: 'Gyldig',
+  EXPIRES_SOON: 'Utløper snart',
+  EXPIRED: 'Utgått',
+  NOT_COMPLETED: 'Mangler',
+}
+
+const statusOrder: Record<TrainingStatus, number> = {
+  NOT_COMPLETED: 0,
+  EXPIRED: 1,
+  EXPIRES_SOON: 2,
+  COMPLETED: 3,
+}
+
+function formatDate(iso: string | null): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return d.toLocaleDateString('nb-NO', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+const filteredAndSorted = computed(() => {
+  const q = search.value.toLowerCase().trim()
+  let list = trainingLogs.value.slice()
+
+  if (q) {
+    list = list.filter((t) =>
+      [t.employeeUserName, t.title, statusLabel[t.status]].some((v) =>
+        v.toLowerCase().includes(q),
+      ),
+    )
+  }
+
+  list.sort((a, b) => {
+    let cmp = 0
+    if (sortField.value === 'employee') {
+      cmp = a.employeeUserName.localeCompare(b.employeeUserName, 'nb')
+    } else if (sortField.value === 'title') {
+      cmp = a.title.localeCompare(b.title, 'nb')
+    } else if (sortField.value === 'completed') {
+      cmp = (a.completedAt ?? '').localeCompare(b.completedAt ?? '')
+    } else if (sortField.value === 'expires') {
+      cmp = (a.expiresAt ?? '').localeCompare(b.expiresAt ?? '')
+    } else if (sortField.value === 'status') {
+      cmp = statusOrder[a.status] - statusOrder[b.status]
+    }
+    return sortDir.value === 'desc' ? -cmp : cmp
   })
+
+  return list
 })
 
-const editMode = ref(false)
+// ── Checkbox selection ──
 const selected = ref<Set<number>>(new Set())
 
-function toggleEditMode(): void {
-  editMode.value = !editMode.value
-  selected.value = new Set()
-}
-
-function toggleSelect(id: number): void {
+function toggleSelect(id: number) {
   const s = new Set(selected.value)
-  if (s.has(id)) { s.delete(id) } else { s.add(id) }
+  if (s.has(id)) s.delete(id)
+  else s.add(id)
   selected.value = s
 }
 
 const allSelected = computed(() =>
-  filtered.value.length > 0 && filtered.value.every(r => selected.value.has(r.id))
+  filteredAndSorted.value.length > 0 &&
+  filteredAndSorted.value.every((r) => selected.value.has(r.id)),
 )
 
-function toggleSelectAll(): void {
+function toggleSelectAll() {
   selected.value = allSelected.value
     ? new Set()
-    : new Set(filtered.value.map(r => r.id))
+    : new Set(filteredAndSorted.value.map((r) => r.id))
 }
 
-function deleteSelected(): void {
-  selected.value.forEach(id => {
-    const row = store.allTrainings.find(r => r.id === id)
-    if (row) store.deleteTraining(row.employee.id, row.id)
-  })
-  selected.value = new Set()
-  editMode.value = false
+// ── Stats ──
+const stats = computed(() => {
+  const list = trainingLogs.value
+  return {
+    total: list.length,
+    completed: list.filter((t) => t.status === 'COMPLETED').length,
+    expiringSoon: list.filter((t) => t.status === 'EXPIRES_SOON').length,
+    expired: list.filter((t) => t.status === 'EXPIRED').length,
+    notCompleted: list.filter((t) => t.status === 'NOT_COMPLETED').length,
+  }
+})
+
+// ── Register modal ──
+const showRegister = ref(false)
+
+// ── Edit modal ──
+const editModalOpen = ref(false)
+const editingLog = ref<TrainingLog | null>(null)
+
+function openEdit(log: TrainingLog) {
+  editingLog.value = log
+  editModalOpen.value = true
 }
 
-const showRegister     = ref(false)
-const editModal        = ref(false)
-const editRow          = ref<TrainingRow | null>(null)
-const deleteConfirmRow = ref<TrainingRow | null>(null)
+// ── Delete ──
+const deleteDialogOpen = ref(false)
+const deletingIds = ref<number[]>([])
 
-function openEdit(row: TrainingRow): void {
-  editRow.value   = row
-  editModal.value = true
+function openDeleteSingle(log: TrainingLog) {
+  deletingIds.value = [log.id]
+  deleteDialogOpen.value = true
 }
 
-function confirmDelete(): void {
-  if (!deleteConfirmRow.value) return
-  store.deleteTraining(deleteConfirmRow.value.employee.id, deleteConfirmRow.value.id)
-  deleteConfirmRow.value = null
+function openDeleteSelected() {
+  deletingIds.value = [...selected.value]
+  deleteDialogOpen.value = true
+}
+
+async function confirmDelete() {
+  try {
+    for (const id of deletingIds.value) {
+      await deleteTrainingLog.mutateAsync(id)
+    }
+    toast.success(`Slettet ${deletingIds.value.length} opplæring${deletingIds.value.length > 1 ? 'er' : ''}`)
+    selected.value = new Set()
+  } catch (error) {
+    handleMutationError(error, 'Kunne ikke slette opplæring')
+  } finally {
+    deleteDialogOpen.value = false
+    deletingIds.value = []
+  }
+}
+
+function handleMutationError(error: unknown, fallbackMessage: string) {
+  if (axios.isAxiosError(error)) {
+    const message = error.response?.data?.error?.message
+    if (typeof message === 'string' && message.trim().length > 0) {
+      toast.error(message)
+      return
+    }
+  }
+  toast.error(fallbackMessage)
 }
 </script>
 
 <template>
-  <div class="page">
-    <div class="header">
+  <header class="page-header">
+    <div class="page-header-inner">
+      <SidebarTrigger />
+      <Separator orientation="vertical" class="header-separator" />
+      <span class="page-title">Opplæring</span>
+    </div>
+  </header>
+
+  <div class="page-content">
+    <section class="header-row">
       <div>
-        <h1 class="page-title">Opplæring og sertifiseringer</h1>
-        <p class="page-sub">Oversikt over ansattes opplæringsstatus</p>
+        <h1>Opplæring og sertifiseringer</h1>
+        <p>Oversikt over ansattes opplæringsstatus</p>
       </div>
       <div class="header-actions">
-        <button v-if="!editMode" class="btn btn-outline" @click="toggleEditMode">
-          <Pencil :size="14" /> Rediger
-        </button>
-        <template v-else>
-          <button v-if="selected.size > 0" class="btn btn-danger" @click="deleteSelected">
-            <Trash2 :size="14" /> Slett ({{ selected.size }})
-          </button>
-          <button class="btn btn-outline" @click="toggleEditMode">
-            <X :size="14" /> Avbryt
-          </button>
-        </template>
-        <button v-if="!editMode" class="btn btn-register" @click="showRegister = true">
-          <Plus :size="15" /> Registrer opplæring
-        </button>
+        <Button
+          v-if="selected.size > 0"
+          variant="destructive"
+          @click="openDeleteSelected"
+        >
+          <Trash2 :size="16" />
+          Slett ({{ selected.size }})
+        </Button>
+        <Button @click="showRegister = true">
+          <Plus :size="16" />
+          Registrer opplæring
+        </Button>
       </div>
-    </div>
-    <div class="stat-grid">
-      <StatCard label="Totalt ansatte" :value="store.totalEmployees" />
-      <StatCard
-        label="Fullført opplæring"
-        :value="`${store.completedCount} / ${store.totalEmployees}`"
-        value-class="val-green"
-      >
-        <div class="progress-track">
-          <div
-            class="progress-bar"
-            :style="{ width: (store.completedCount / store.totalEmployees * 100) + '%' }"
-          />
-        </div>
-      </StatCard>
-      <StatCard
-        label="Utløper snart"
-        :value="store.expiringSoonCount"
-        value-class="val-amber"
-        sub-label="Innen 30 dager"
-      />
-    </div>
-    <FilterPanel
-      :types="store.trainingTypes"
-      v-model:modelType="filterType"
-      v-model:modelStatus="filterStatus"
-    />
-    <div class="table-card">
-      <div v-if="!filtered.length" class="empty-state">
-        Ingen resultater matcher filteret.
+    </section>
+
+    <!-- Stats cards -->
+    <section class="cards-group">
+      <article class="status-card">
+        <span>Totalt opplærte</span>
+        <strong>{{ stats.total }}</strong>
+      </article>
+      <article class="status-card status-card--completed">
+        <span>Fullført</span>
+        <strong>{{ stats.completed }}</strong>
+      </article>
+      <article class="status-card status-card--expiring">
+        <span>Utløper snart</span>
+        <strong>{{ stats.expiringSoon }}</strong>
+      </article>
+      <article class="status-card status-card--expired">
+        <span>Utgått</span>
+        <strong>{{ stats.expired }}</strong>
+      </article>
+      <article class="status-card status-card--missing">
+        <span>Mangler</span>
+        <strong>{{ stats.notCompleted }}</strong>
+      </article>
+    </section>
+
+    <!-- Table -->
+    <section class="table-section">
+      <div class="search-wrapper">
+        <Search :size="16" class="search-icon" />
+        <input v-model="search" class="search-input" placeholder="Søk etter ansatt, type eller status..." />
       </div>
 
-      <div v-else class="table-scroll">
-        <table class="data-table">
-          <thead>
-          <tr>
-            <th v-if="editMode" class="col-check">
-              <input
-                type="checkbox"
-                :checked="allSelected"
-                @change="toggleSelectAll"
-              />
-            </th>
-            <th class="th-sortable" @click="cycleNameSort">
-              Ansatt
-              <span class="sort-icon">
-                  <span :class="['arrow', nameSortDir === 'asc' ? 'arrow-active' : '']">▲</span>
-                  <span :class="['arrow', nameSortDir === 'desc' ? 'arrow-active' : '']">▼</span>
-                </span>
-            </th>
-            <th class="hide-mobile">Opplæringstype</th>
-            <th class="hide-mobile">Fullført</th>
-            <th>Utløper</th>
-            <th>Status</th>
-            <th v-if="!editMode" class="col-action" />
-          </tr>
-          </thead>
-          <tbody>
-          <tr
-            v-for="row in filtered"
-            :key="row.id"
-            :class="{ 'row-selected': editMode && selected.has(row.id), 'row-clickable': editMode }"
-            @click="editMode && toggleSelect(row.id)"
-          >
-            <td v-if="editMode" class="col-check">
-              <input
-                type="checkbox"
-                :checked="selected.has(row.id)"
-                @click.stop
-                @change="toggleSelect(row.id)"
-              />
-            </td>
+      <p v-if="trainingLogsQuery.isLoading.value" class="state-line">Laster opplæringer...</p>
 
-            <td>
-              <div class="employee-cell">
-                <EmployeeAvatar :initials="row.employee.initials" :color="row.employee.color" size="sm" />
-                <div>
-                  <p class="emp-name">{{ row.employee.name }}</p>
-                  <p class="emp-role">{{ row.employee.role }}</p>
-                </div>
-              </div>
-            </td>
-
-            <td class="hide-mobile cell-text">{{ row.type }}</td>
-            <td class="hide-mobile cell-text">{{ row.completed ?? '—' }}</td>
-
-            <td :class="['cell-text', row.status === 'Utløper snart' ? 'expires-soon' : '']">
-              {{ row.expires ?? '—' }}
-            </td>
-
-            <td><StatusBadge :status="row.status" /></td>
-
-            <td v-if="!editMode" class="col-action">
-              <button class="icon-btn" aria-label="Rediger" @click.stop="openEdit(row)">
-                <Pencil :size="14" />
-              </button>
-            </td>
-          </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Modals -->
-    <EditTrainingModal
-      v-model="editModal"
-      :training="editRow"
-      :employee-id="editRow?.employee?.id"
-    />
-    <RegisterTrainingModal v-model="showRegister" />
-
-    <Teleport to="body">
-      <div v-if="deleteConfirmRow" class="overlay" @click.self="deleteConfirmRow = null">
-        <div class="dialog">
-          <h2 class="dialog-title">Slett opplæring</h2>
-          <p class="dialog-body">
-            Er du sikker på at du vil slette
-            <strong>{{ deleteConfirmRow.type }}</strong> for
-            <strong>{{ deleteConfirmRow.employee.name }}</strong>?
-            Dette kan ikke angres.
-          </p>
-          <div class="dialog-actions">
-            <button class="btn btn-outline" @click="deleteConfirmRow = null">Avbryt</button>
-            <button class="btn btn-danger" @click="confirmDelete">Slett</button>
+      <div v-else-if="trainingLogsQuery.isError.value" class="empty-state">
+        <div class="empty-state-bg" />
+        <div class="empty-state-inner">
+          <div class="empty-state-icon">
+            <AlertTriangle :stroke-width="1.5" />
+          </div>
+          <div class="empty-state-text">
+            <h3>Kunne ikke hente opplæringer</h3>
+            <p>Noe gikk galt under lasting. Prøv igjen senere.</p>
           </div>
         </div>
       </div>
-    </Teleport>
 
+      <div v-else class="table-card">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead class="th-check">
+                <Checkbox :checked="allSelected" @update:checked="toggleSelectAll" />
+              </TableHead>
+              <TableHead class="th-employee">
+                <button class="sort-btn" @click="toggleSort('employee')">
+                  Ansatt
+                  <ArrowUpDown :size="14" class="sort-icon" :class="{ 'sort-icon--active': sortField === 'employee' }" />
+                </button>
+              </TableHead>
+              <TableHead class="th-title">
+                <button class="sort-btn" @click="toggleSort('title')">
+                  Opplæringstype
+                  <ArrowUpDown :size="14" class="sort-icon" :class="{ 'sort-icon--active': sortField === 'title' }" />
+                </button>
+              </TableHead>
+              <TableHead class="th-date hide-mobile">
+                <button class="sort-btn" @click="toggleSort('completed')">
+                  Fullført
+                  <ArrowUpDown :size="14" class="sort-icon" :class="{ 'sort-icon--active': sortField === 'completed' }" />
+                </button>
+              </TableHead>
+              <TableHead class="th-date hide-mobile">
+                <button class="sort-btn" @click="toggleSort('expires')">
+                  Utløper
+                  <ArrowUpDown :size="14" class="sort-icon" :class="{ 'sort-icon--active': sortField === 'expires' }" />
+                </button>
+              </TableHead>
+              <TableHead class="th-status">
+                <button class="sort-btn" @click="toggleSort('status')">
+                  Status
+                  <ArrowUpDown :size="14" class="sort-icon" :class="{ 'sort-icon--active': sortField === 'status' }" />
+                </button>
+              </TableHead>
+              <TableHead class="th-actions" />
+            </TableRow>
+          </TableHeader>
+
+          <TableBody>
+            <TableRow
+              v-for="log in filteredAndSorted"
+              :key="log.id"
+              :class="selected.has(log.id) ? 'row-selected' : ''"
+            >
+              <TableCell class="td-check">
+                <Checkbox :checked="selected.has(log.id)" @update:checked="toggleSelect(log.id)" />
+              </TableCell>
+              <TableCell>
+                <div class="cell-user">
+                  <div class="user-avatar">
+                    {{ log.employeeUserName.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() }}
+                  </div>
+                  <span class="user-name">{{ log.employeeUserName }}</span>
+                </div>
+              </TableCell>
+              <TableCell class="cell-text">{{ log.title }}</TableCell>
+              <TableCell class="cell-text hide-mobile">{{ formatDate(log.completedAt) }}</TableCell>
+              <TableCell :class="`cell-text hide-mobile${log.status === 'EXPIRES_SOON' ? ' cell-expires-soon' : ''}`">
+                {{ formatDate(log.expiresAt) }}
+              </TableCell>
+              <TableCell>
+                <StatusBadge :status="statusLabel[log.status]" />
+              </TableCell>
+              <TableCell class="cell-actions">
+                <DropdownMenu>
+                  <DropdownMenuTrigger as-child>
+                    <button type="button" class="actions-trigger">
+                      <MoreVertical :size="18" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" :side-offset="4">
+                    <DropdownMenuLabel>Handlinger</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem @click="openEdit(log)">
+                      <Pencil :size="16" />
+                      Rediger
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem class="menu-item--danger" @click="openDeleteSingle(log)">
+                      <Trash2 :size="16" />
+                      Slett
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
+
+            <TableEmpty v-if="filteredAndSorted.length === 0" :colspan="7">
+              Ingen opplæringer matcher søket.
+            </TableEmpty>
+          </TableBody>
+        </Table>
+      </div>
+    </section>
+
+    <!-- Modals -->
+    <RegisterTrainingModal :open="showRegister" @update:open="(v) => { showRegister = v }" />
+    <EditTrainingModal
+      :open="editModalOpen"
+      :training="editingLog"
+      @update:open="(v) => { editModalOpen = v }"
+    />
+
+    <!-- Delete confirmation dialog -->
+    <AlertDialog :open="deleteDialogOpen" @update:open="(v: boolean) => { deleteDialogOpen = v }">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Slett opplæring?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {{ deletingIds.length === 1
+              ? 'Er du sikker på at du vil slette denne opplæringen? Dette kan ikke angres.'
+              : `Er du sikker på at du vil slette ${deletingIds.length} opplæringer? Dette kan ikke angres.`
+            }}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Avbryt</AlertDialogCancel>
+          <AlertDialogAction variant="destructive" @click="confirmDelete">Slett</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>
 </template>
 
 <style scoped>
-.page {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 28px 24px 64px;
-  font-family: inherit;
-}
+.page-header { display: flex; height: 4rem; flex-shrink: 0; align-items: center; }
+.page-header-inner { display: flex; align-items: center; gap: 0.5rem; padding: 0 1rem; }
+.header-separator { height: 1rem !important; width: 1px !important; margin-right: 0.5rem; }
+.page-title { font-weight: 500; color: hsl(var(--sidebar-primary, 245 43% 52%)); }
+.page-content { display: flex; flex: 1; flex-direction: column; gap: 1rem; padding: 0 1rem 1rem; }
 
-.header {
+.header-row {
   display: flex;
-  align-items: flex-start;
   justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 28px;
-}
-
-.page-title {
-  font-size: 1.6rem;
-  font-weight: 700;
-  color: #111827;
-  margin: 0;
-  letter-spacing: -0.02em;
-}
-
-.page-sub {
-  font-size: 0.85rem;
-  color: #9ca3af;
-  margin: 2px 0 0;
+  align-items: flex-start;
+  gap: 1rem;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
 }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 9px 16px;
-  border-radius: 12px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-  border: none;
-}
+h1 { margin: 0; font-size: 2.4rem; letter-spacing: -0.02em; }
+.header-row p { margin-top: 6px; color: var(--text-secondary); font-size: 1.08rem; }
 
-.btn-outline {
-  background: #fff;
-  border: 1px solid #e7e5e4;
-  color: #4b5563;
-}
-.btn-outline:hover { background: #f5f5f4; }
-
-.btn-register {
-  background: #fff;
-  border: 1px solid #e7e5e4;
-  color: #4f46e5;
-}
-.btn-register:hover { background: #eef2ff; }
-
-.btn-danger {
-  background: #dc2626;
-  border: 1px solid #dc2626;
-  color: #fff;
-}
-.btn-danger:hover { background: #b91c1c; }
-
-.stat-grid {
+/* Stats cards */
+.cards-group {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-bottom: 24px;
-}
-
-@media (max-width: 600px) {
-  .stat-grid { grid-template-columns: repeat(2, 1fr); }
-}
-
-.progress-track {
-  margin-top: 10px;
-  height: 6px;
-  background: #f0fdf4;
-  border-radius: 999px;
-  overflow: hidden;
-}
-.progress-bar {
-  height: 100%;
-  background: #059669;
-  border-radius: 999px;
-  transition: width 0.5s ease;
-}
-
-.table-card {
-  background: #fff;
-  border: 1px solid #e7e5e4;
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-.table-scroll { overflow-x: auto; }
-
-.empty-state {
-  padding: 64px 0;
-  text-align: center;
-  font-size: 0.875rem;
-  color: #9ca3af;
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.data-table thead tr {
-  border-bottom: 1px solid #f5f5f4;
-}
-
-.data-table th {
-  text-align: left;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #9ca3af;
-  padding: 12px 20px;
-  white-space: nowrap;
-}
-
-.th-sortable {
-  cursor: pointer;
-  user-select: none;
-}
-.th-sortable:hover { color: #374151; }
-
-.sort-icon {
-  display: inline-flex;
-  flex-direction: column;
-  gap: 1px;
-  margin-left: 5px;
-  vertical-align: middle;
-  line-height: 1;
-}
-
-.arrow {
-  font-size: 0.5rem;
-  color: #d1d5db;
-  line-height: 1;
-}
-.arrow-active { color: #059669; }
-
-.data-table tbody tr {
-  border-bottom: 1px solid #fafaf9;
-  transition: background 0.12s;
-}
-.data-table tbody tr:last-child { border-bottom: none; }
-.data-table tbody tr:hover { background: #fafaf9; }
-
-.data-table td {
-  padding: 14px 20px;
-  vertical-align: middle;
-}
-
-.col-check {
-  width: 44px;
-  padding-left: 16px;
-  padding-right: 8px;
-}
-.col-check input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-  accent-color: #059669;
-}
-
-.col-action { width: 40px; padding: 0 12px; }
-
-.row-selected { background: #fff1f2 !important; }
-.row-clickable { cursor: pointer; }
-
-.cell-text { font-size: 0.875rem; color: #4b5563; }
-.expires-soon { color: #d97706; font-weight: 600; }
-
-.employee-cell {
-  display: flex;
-  align-items: center;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
 }
-.emp-name {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #111827;
-  margin: 0;
-}
-.emp-role {
-  font-size: 0.75rem;
-  color: #9ca3af;
-  margin: 0;
+
+.status-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--card-bg);
 }
 
-.icon-btn {
-  width: 28px;
-  height: 28px;
+.status-card span { font-size: 1rem; }
+.status-card strong { font-size: 2rem; letter-spacing: -0.02em; }
+
+.status-card--completed {
+  background: #f3faf2;
+  border-color: #c8e4c2;
+}
+.status-card--completed strong { color: #3c8f2c; }
+
+.status-card--expiring {
+  background: #fdf9f0;
+  border-color: #f0ddb0;
+}
+.status-card--expiring strong { color: #946013; }
+
+.status-card--expired {
+  background: #fdf5f5;
+  border-color: #f0d0d0;
+}
+.status-card--expired strong { color: #a62929; }
+
+.status-card--missing {
+  background: #fdf5f5;
+  border-color: #f0d0d0;
+}
+.status-card--missing strong { color: #a62929; }
+
+/* Search */
+.search-wrapper {
+  position: relative;
+  width: 20rem;
+}
+
+.search-icon {
+  position: absolute;
+  left: 0.65rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: hsl(var(--muted-foreground, 24 5% 46%));
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  border: 1px solid hsl(var(--border, 35 18% 88%));
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem 0.5rem 2.1rem;
+  font: inherit;
+  font-size: 0.85rem;
+  background: hsl(var(--card, 40 25% 98%));
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: hsl(var(--ring, 245 43% 52%));
+  box-shadow: 0 0 0 2px hsl(var(--ring, 245 43% 52%) / 0.15);
+}
+
+/* Table */
+.table-section { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.table-card {
+  border: 1px solid hsl(var(--border, 35 18% 88%));
+  border-radius: 0.75rem;
+  background: hsl(var(--card, 40 25% 98%));
+}
+
+/* Sort buttons */
+.sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: none;
   border: none;
-  background: transparent;
-  border-radius: 8px;
+  font: inherit;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground, 24 5% 46%));
+  cursor: pointer;
+  padding: 0.25rem 0.4rem;
+  border-radius: var(--radius-md, 0.375rem);
+  margin: -0.25rem -0.4rem;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.sort-btn:hover {
+  background: hsl(var(--accent, 250 40% 95%));
+  color: hsl(var(--foreground, 24 10% 15%));
+}
+
+.sort-icon { opacity: 0.4; transition: opacity 150ms; }
+.sort-icon--active { opacity: 1; }
+
+/* Checkbox */
+.th-check, .td-check { width: 3rem; padding-left: 1rem; padding-right: 0; }
+
+/* Row selection */
+.row-selected {
+  background-color: hsl(var(--muted, 40 18% 93%) / 0.6) !important;
+}
+
+/* User cell */
+.cell-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.user-avatar {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 9999px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #d1d5db;
-  cursor: pointer;
-  transition: background 0.12s, color 0.12s;
+  background: hsl(var(--muted, 40 18% 93%));
+  color: hsl(var(--muted-foreground, 24 5% 46%));
+  font-size: 0.75rem;
+  font-weight: 600;
+  flex-shrink: 0;
 }
-.icon-btn:hover { background: #f5f5f4; color: #374151; }
+
+.user-name { font-weight: 500; }
+.cell-text { color: hsl(var(--muted-foreground, 24 5% 46%)); }
+.cell-expires-soon { color: #d97706; font-weight: 600; }
+
+/* Actions cell */
+.cell-actions {
+  width: 3rem;
+  text-align: right;
+}
+
+.actions-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-md, 0.375rem);
+  border: none;
+  background: none;
+  color: hsl(var(--muted-foreground, 24 5% 46%));
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.actions-trigger:hover {
+  background: hsl(var(--accent, 250 40% 95%));
+  color: hsl(var(--foreground, 24 10% 15%));
+}
+
+.menu-item--danger { color: #dc2626; }
+
+/* Column widths */
+.th-employee { min-width: 10rem; }
+.th-title { min-width: 8rem; }
+.th-date { min-width: 6rem; }
+.th-status { min-width: 6rem; }
+.th-actions { width: 3rem; }
+
+/* Loading / Error states */
+.state-line {
+  border-radius: var(--radius-md);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  padding: 12px;
+  color: var(--text-secondary);
+}
+
+.empty-state {
+  position: relative;
+  display: flex;
+  min-height: 260px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 2px dashed hsl(var(--muted-foreground) / 0.2);
+  background: linear-gradient(to bottom right, hsl(var(--muted) / 0.4), hsl(var(--muted) / 0.2), hsl(var(--background)));
+  padding: 2rem;
+}
+
+.empty-state-bg {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, hsl(var(--muted)) 0%, transparent 70%);
+  opacity: 0.5;
+}
+
+.empty-state-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  text-align: center;
+}
+
+.empty-state-icon {
+  display: flex;
+  height: 5rem;
+  width: 5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  background-color: hsl(var(--primary) / 0.1);
+  box-shadow: 0 0 0 4px hsl(var(--primary) / 0.05);
+}
+
+.empty-state-icon :deep(svg) {
+  width: 2.5rem;
+  height: 2.5rem;
+  color: hsl(var(--primary) / 0.7);
+}
+
+.empty-state-text h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.empty-state-text p {
+  max-width: 24rem;
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 1100px) {
+  .cards-group { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 
 @media (max-width: 768px) {
   .hide-mobile { display: none; }
-}
-
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-  padding: 16px;
-}
-
-.dialog {
-  background: #fff;
-  border-radius: 16px;
-  width: 100%;
-  max-width: 380px;
-  padding: 24px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
-}
-
-.dialog-title {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #111827;
-  margin: 0 0 6px;
-}
-
-.dialog-body {
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin: 0 0 20px;
-  line-height: 1.5;
-}
-
-.dialog-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
+  .cards-group { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .header-row { flex-direction: column; }
+  .search-wrapper { width: 100%; }
 }
 </style>

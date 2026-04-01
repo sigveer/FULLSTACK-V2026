@@ -18,7 +18,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 import AlertDialog from '@/components/ui/alert-dialog/AlertDialog.vue'
 import AlertDialogAction from '@/components/ui/alert-dialog/AlertDialogAction.vue'
@@ -44,7 +43,6 @@ import type {
   ChecklistFrequency,
   ChecklistItem,
   CreateChecklistItemRequest,
-  CreateChecklistRequest,
   UpdateChecklistItemRequest,
   UpdateChecklistRequest,
 } from '@/types/checklist'

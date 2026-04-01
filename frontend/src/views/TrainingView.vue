@@ -8,7 +8,7 @@ import EmployeeTrainingView from './EmployeeTrainingView.vue'
 
 const auth = useAuthStore()
 const canSeeAll = computed(() =>
-  ['ADMIN', 'Leder', 'Styrer'].includes(auth.role ?? '')
+  ['ADMIN', 'MANAGER'].includes(auth.role ?? '')
 )
 </script>
 

@@ -1,185 +1,202 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { X, Check, Trash2 } from 'lucide-vue-next'
-import type { Training } from '@/stores/training'
-import { useTrainingStore } from '@/stores/training'
+import { ref, watch, computed } from 'vue'
+import axios from 'axios'
+import { toast } from 'vue-sonner'
+import Dialog from '@/components/ui/dialog/Dialog.vue'
+import DialogContent from '@/components/ui/dialog/DialogContent.vue'
+import DialogDescription from '@/components/ui/dialog/DialogDescription.vue'
+import DialogFooter from '@/components/ui/dialog/DialogFooter.vue'
+import DialogHeader from '@/components/ui/dialog/DialogHeader.vue'
+import DialogTitle from '@/components/ui/dialog/DialogTitle.vue'
 import Button from '@/components/ui/button/Button.vue'
+import Input from '@/components/ui/input/Input.vue'
+import Textarea from '@/components/ui/textarea/Textarea.vue'
+import {
+  useUpdateTrainingLogMutation,
+  useOrganizationMembersQuery,
+} from '@/composables/useTrainingLogs'
+import type { TrainingLog, TrainingStatus } from '@/types/training'
 
 const props = defineProps<{
-  modelValue: boolean
-  training: Training | null
-  employeeId: number | undefined
+  open: boolean
+  training: TrainingLog | null
 }>()
-const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
+const emits = defineEmits<{ (e: 'update:open', value: boolean): void }>()
 
-const store = useTrainingStore()
-const form  = ref<Omit<Training, 'id'>>({ type: '', completed: null, expires: null, status: 'Gyldig' })
-const deleteConfirm = ref(false)
+const updateMutation = useUpdateTrainingLogMutation()
+const canManage = computed(() => true)
+const membersQuery = useOrganizationMembersQuery(canManage)
+const members = computed(() => membersQuery.data.value ?? [])
 
-watch(() => props.training, (t) => {
-  if (t) {
-    form.value = { type: t.type, completed: t.completed, expires: t.expires, status: t.status }
-    deleteConfirm.value = false
-  }
-}, { immediate: true })
+const employeeUserId = ref<string>('')
+const title = ref('')
+const description = ref('')
+const completedAt = ref('')
+const expiresAt = ref('')
+const status = ref<TrainingStatus>('COMPLETED')
+const errorMessage = ref('')
 
-function close(): void { emit('update:modelValue', false) }
+const statusOptions: Array<{ value: TrainingStatus; label: string }> = [
+  { value: 'COMPLETED', label: 'Fullført' },
+  { value: 'EXPIRES_SOON', label: 'Utløper snart' },
+  { value: 'EXPIRED', label: 'Utgått' },
+  { value: 'NOT_COMPLETED', label: 'Ikke fullført' },
+]
 
-function save(): void {
-  if (!props.training || !props.employeeId) return
-  store.updateTraining(props.employeeId, props.training.id, form.value)
-  close()
+function isoToDateInput(iso: string | null): string {
+  if (!iso) return ''
+  return iso.slice(0, 10)
 }
 
-function remove(): void {
-  if (!props.training || !props.employeeId) return
-  store.deleteTraining(props.employeeId, props.training.id)
-  close()
+watch(
+  () => [props.open, props.training],
+  ([isOpen]) => {
+    if (!isOpen) return
+    if (props.training) {
+      employeeUserId.value = String(props.training.employeeUserId)
+      title.value = props.training.title
+      description.value = props.training.description ?? ''
+      completedAt.value = isoToDateInput(props.training.completedAt)
+      expiresAt.value = isoToDateInput(props.training.expiresAt)
+      status.value = props.training.status
+    }
+    errorMessage.value = ''
+  },
+)
+
+function closeDialog() {
+  emits('update:open', false)
+}
+
+function toIso(dateStr: string): string | undefined {
+  if (!dateStr) return undefined
+  return new Date(dateStr + 'T00:00:00Z').toISOString()
+}
+
+async function handleSubmit() {
+  if (!props.training) return
+  const trimmedTitle = title.value.trim()
+  if (!trimmedTitle) {
+    errorMessage.value = 'Opplæringstype er påkrevd.'
+    return
+  }
+  errorMessage.value = ''
+
+  try {
+    await updateMutation.mutateAsync({
+      id: props.training.id,
+      payload: {
+        employeeUserId: Number(employeeUserId.value) || undefined,
+        title: trimmedTitle || undefined,
+        description: description.value.trim() || undefined,
+        completedAt: toIso(completedAt.value),
+        expiresAt: toIso(expiresAt.value),
+        status: status.value,
+      },
+    })
+    toast.success('Opplæring oppdatert')
+    closeDialog()
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const msg = error.response?.data?.error?.message
+      if (typeof msg === 'string' && msg.trim()) {
+        toast.error(msg)
+        return
+      }
+    }
+    toast.error('Kunne ikke oppdatere opplæring')
+  }
 }
 </script>
 
 <template>
-  <Teleport to="body">
-    <Transition name="modal">
-      <div
-        v-if="modelValue"
-        class="overlay"
-        @click.self="close"
-      >
-        <div class="modal">
-          <div class="modal-header">
-            <div class="modal-header-left">
-              <div class="modal-icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                </svg>
-              </div>
-              <h2 class="modal-title">Rediger opplæring</h2>
-            </div>
-            <Button variant="ghost" size="icon-sm" class="close-btn" @click="close" aria-label="Lukk">
-              <X :size="16" />
-            </Button>
-          </div>
+  <Dialog :open="open" @update:open="(value) => emits('update:open', value)">
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Rediger opplæring</DialogTitle>
+        <DialogDescription>Oppdater informasjonen for valgt opplæring</DialogDescription>
+      </DialogHeader>
 
-          <div class="modal-body">
-            <div class="field-group">
-              <label class="field-label">Opplæringstype</label>
-              <input v-model="form.type" class="form-input" placeholder="Skriv inn type..." />
-            </div>
-            <div class="field-row">
-              <div class="field-group">
-                <label class="field-label">Fullført dato</label>
-                <input v-model="form.completed" placeholder="dd.mm.åååå" class="form-input" />
-              </div>
-              <div class="field-group">
-                <label class="field-label">Utløpsdato</label>
-                <input v-model="form.expires" placeholder="dd.mm.åååå" class="form-input" />
-              </div>
-            </div>
-            <div class="field-group">
-              <label class="field-label">Status</label>
-              <select v-model="form.status" class="form-input form-select">
-                <option>Gyldig</option>
-                <option>Utløper snart</option>
-                <option>Mangler</option>
-              </select>
-            </div>
-          </div>
+      <form class="form" @submit.prevent="handleSubmit">
+        <label class="field">
+          <span>Ansatt</span>
+          <select v-model="employeeUserId" class="select-field">
+            <option value="" disabled>Velg ansatt…</option>
+            <option v-for="m in members" :key="m.userId" :value="String(m.userId)">
+              {{ m.userFullName }}
+            </option>
+          </select>
+        </label>
 
-          <div class="modal-footer">
-            <div class="footer-left">
-              <button
-                v-if="!deleteConfirm"
-                class="delete-btn"
-                @click="deleteConfirm = true"
-              >
-                <Trash2 :size="13" /> Slett
-              </button>
-              <div v-else class="delete-confirm">
-                <span class="delete-confirm-text">Er du sikker?</span>
-                <button class="confirm-yes" @click="remove">Ja, slett</button>
-                <button class="confirm-no" @click="deleteConfirm = false">Nei</button>
-              </div>
-            </div>
-            <div class="footer-right">
-              <Button variant="destructive" size="sm" @click="close">Avbryt</Button>
-              <Button variant="default" size="sm" @click="save">
-                <Check :size="14" /> Registrer
-              </Button>
-            </div>
-          </div>
+        <label class="field">
+          <span>Opplæringstype *</span>
+          <Input v-model="title" placeholder="Skriv inn type..." />
+        </label>
 
+        <label class="field">
+          <span>Beskrivelse</span>
+          <Textarea v-model="description" rows="3" placeholder="Valgfri beskrivelse..." />
+        </label>
+
+        <div class="field-row">
+          <label class="field">
+            <span>Fullført dato</span>
+            <Input v-model="completedAt" type="date" />
+          </label>
+          <label class="field">
+            <span>Utløpsdato</span>
+            <Input v-model="expiresAt" type="date" />
+          </label>
         </div>
-      </div>
-    </Transition>
-  </Teleport>
+
+        <div class="field">
+          <span>Status</span>
+          <div class="segmented-grid segmented-grid--4">
+            <button
+              v-for="opt in statusOptions"
+              :key="opt.value"
+              type="button"
+              class="segment-button"
+              :class="[
+                `segment-button--${opt.value.toLowerCase()}`,
+                { 'segment-button--active': status === opt.value },
+              ]"
+              @click="status = opt.value"
+            >
+              {{ opt.label }}
+            </button>
+          </div>
+        </div>
+
+        <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+
+        <DialogFooter>
+          <Button type="button" variant="outline" @click="closeDialog">Avbryt</Button>
+          <Button type="submit" :disabled="updateMutation.isPending.value">
+            {{ updateMutation.isPending.value ? 'Lagrer...' : 'Lagre endringer' }}
+          </Button>
+        </DialogFooter>
+      </form>
+    </DialogContent>
+  </Dialog>
 </template>
 
 <style scoped>
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(2px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-  padding: 16px;
-}
-
-.modal {
-  background: #ffffff;
-  border-radius: 20px;
-  width: 100%;
-  max-width: 440px;
-  box-shadow:
-    0 0 0 1px rgba(0,0,0,0.06),
-    0 8px 24px rgba(0,0,0,0.10),
-    0 24px 64px rgba(0,0,0,0.12);
-  overflow: hidden;
-}
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 24px 18px;
-  border-bottom: 1px solid #f0eeee;
-}
-
-.modal-header-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.modal-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  background: #f5f3ff;
-  color: #7c3aed;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.modal-title {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: #111827;
-  margin: 0;
-  letter-spacing: -0.01em;
-}
-
-.modal-body {
-  padding: 20px 24px;
+.form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field span {
+  font-size: 0.92rem;
+  font-weight: 600;
 }
 
 .field-row {
@@ -188,138 +205,80 @@ function remove(): void {
   gap: 12px;
 }
 
-.field-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.field-label {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.form-input {
-  border: 1.5px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 9px 12px;
-  font-size: 0.875rem;
-  color: #1f2937;
-  background: #fafafa;
-  outline: none;
-  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+.select-field {
   width: 100%;
-  box-sizing: border-box;
-  font-family: inherit;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--input));
+  background: hsl(var(--card));
+  padding: 0 0.75rem;
+  font-size: 0.875rem;
 }
 
-.form-input:focus {
-  border-color: #7c3aed;
-  background: #fff;
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.08);
+.select-field:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2);
+  border-color: hsl(var(--primary) / 0.5);
 }
 
-.form-input::placeholder {
-  color: #d1d5db;
-}
-
-.form-select {
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  padding-right: 32px;
-  cursor: pointer;
-}
-
-.modal-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 24px 20px;
-  border-top: 1px solid #f0eeee;
+.segmented-grid {
+  display: grid;
   gap: 8px;
 }
 
-.footer-left { display: flex; align-items: center; }
-.footer-right { display: flex; align-items: center; gap: 8px; }
-
-.delete-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: #ef4444;
-  background: transparent;
-  border: 1.5px solid #fecaca;
-  border-radius: 9px;
-  padding: 7px 12px;
-  cursor: pointer;
-  transition: background 0.12s, border-color 0.12s;
-}
-.delete-btn:hover {
-  background: #fff5f5;
-  border-color: #fca5a5;
+.segmented-grid--4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-.delete-confirm {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.delete-confirm-text {
-  font-size: 0.8rem;
-  color: #ef4444;
-  font-weight: 500;
-}
-.confirm-yes {
-  font-size: 0.78rem;
+.segment-button {
+  border: 1px solid hsl(var(--input));
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  border-radius: var(--radius-md);
+  height: 2.5rem;
   font-weight: 600;
-  background: #ef4444;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 6px 10px;
   cursor: pointer;
-  transition: background 0.12s;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
 }
-.confirm-yes:hover { background: #dc2626; }
 
-.confirm-no {
-  font-size: 0.78rem;
-  font-weight: 500;
-  background: transparent;
-  color: #6b7280;
-  border: 1.5px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 5px 10px;
-  cursor: pointer;
-  transition: background 0.12s;
+.segment-button--active {
+  border-color: hsl(var(--primary));
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
 }
-.confirm-no:hover { background: #f9fafb; }
 
-.modal-enter-active,
-.modal-leave-active {
-  transition: opacity 0.2s ease;
+.segment-button--completed.segment-button--active {
+  border-color: #71a66a;
+  background: #dcebd8;
+  color: #2f6f34;
 }
-.modal-enter-active .modal,
-.modal-leave-active .modal {
-  transition: transform 0.22s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.2s ease;
+
+.segment-button--expires_soon.segment-button--active {
+  border-color: #d1a768;
+  background: #f4e6d1;
+  color: #d0a11f;
 }
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
+
+.segment-button--expired.segment-button--active {
+  border-color: #d68b3b;
+  background: #f6dfc8;
+  color: #a2550c;
 }
-.modal-enter-from .modal {
-  transform: scale(0.96) translateY(8px);
-  opacity: 0;
+
+.segment-button--not_completed.segment-button--active {
+  border-color: #c95d5d;
+  background: #f4e0e0;
+  color: #902324;
 }
-.modal-leave-to .modal {
-  transform: scale(0.96) translateY(4px);
-  opacity: 0;
+
+.error-message {
+  color: hsl(var(--destructive));
+  font-size: 0.86rem;
+}
+
+@media (max-width: 780px) {
+  .segmented-grid--4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 </style>

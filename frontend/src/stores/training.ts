@@ -26,12 +26,7 @@ export interface TrainingRow extends Training {
 
 export const useTrainingStore = defineStore('training', () => {
   const auth = useAuthStore()
-
-  // All employees across all organisations.
-  // In a real app these would come from an API that already filters by org.
-  // Here we store everything client-side and scope by organizationId.
   const _allEmployees = ref<Employee[]>([
-    // ── Org 1 ────────────────────────────────────────────────────────────────
     {
       id: 1, organizationId: 1,
       name: 'Leder Ledersen', initials: 'LL', role: 'Styrer', color: '#7c6fcd',
@@ -63,7 +58,6 @@ export const useTrainingStore = defineStore('training', () => {
       trainings: [{ id: 106, type: 'Ansvarlig vertskap', completed: '10.11.2024', expires: '10.11.2026', status: 'Gyldig' }]
     },
 
-    // ── Org 2 (example second organisation) ──────────────────────────────────
     {
       id: 7, organizationId: 2,
       name: 'Bjørn Berg', initials: 'BB', role: 'Styrer', color: '#3b82f6',
@@ -75,10 +69,6 @@ export const useTrainingStore = defineStore('training', () => {
       trainings: [{ id: 202, type: 'Alderskontroll-opplæring', completed: '10.01.2026', expires: '10.01.2027', status: 'Gyldig' }]
     },
   ])
-
-  // ── Everything below is scoped to the current user's organisation ──────────
-
-  /** Employees belonging to the logged-in user's organisation only. */
   const employees = computed<Employee[]>(() => {
     const orgId = auth.organizationId
     if (!orgId) return []
@@ -98,8 +88,6 @@ export const useTrainingStore = defineStore('training', () => {
   const totalEmployees    = computed(() => employees.value.length)
   const completedCount    = computed(() => employees.value.filter(e => e.trainings.some(t => t.status !== 'Mangler')).length)
   const expiringSoonCount = computed(() => allTrainings.value.filter(t => t.status === 'Utløper snart').length)
-
-  // ── Mutations — each checks the employee belongs to the current org ────────
 
   function updateTraining(employeeId: number, trainingId: number, data: Omit<Training, 'id'>): void {
     const emp = employees.value.find(e => e.id === employeeId)

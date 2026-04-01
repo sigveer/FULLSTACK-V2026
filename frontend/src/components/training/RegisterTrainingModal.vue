@@ -1,94 +1,415 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { X, Check } from 'lucide-vue-next'
-import type { Training } from '@/stores/training'
+import { ref, computed } from 'vue'
+import { X, Check, ChevronDown } from 'lucide-vue-next'
 import { useTrainingStore } from '@/stores/training'
 
 defineProps<{ modelValue: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
-
 const store = useTrainingStore()
 
-interface RegisterForm {
-  employeeId: number | ''
-  type: string
-  completed: string
-  expires: string
-  status: Training['status']
+const form = ref({
+  employeeId: null as number | null,
+  type: '',
+  completed: '',
+  expires: '',
+  status: 'Gyldig' as 'Gyldig' | 'Utløper snart' | 'Mangler',
+})
+
+const errors = ref<Record<string, string>>({})
+
+const employees = computed(() =>
+  store.employees ?? []
+)
+
+function validate(): boolean {
+  const e: Record<string, string> = {}
+  if (!form.value.employeeId) e.employeeId = 'Velg en ansatt'
+  if (!form.value.type.trim()) e.type = 'Opplæringstype er påkrevd'
+  errors.value = e
+  return Object.keys(e).length === 0
 }
 
-const form = ref<RegisterForm>({ employeeId: '', type: '', completed: '', expires: '', status: 'Gyldig' })
+function close(): void {
+  emit('update:modelValue', false)
+  setTimeout(reset, 300)
+}
 
-function close(): void { emit('update:modelValue', false) }
+function reset(): void {
+  form.value = { employeeId: null, type: '', completed: '', expires: '', status: 'Gyldig' }
+  errors.value = {}
+}
 
 function save(): void {
-  if (!form.value.employeeId || !form.value.type) return
-  store.addTraining(Number(form.value.employeeId), {
-    type: form.value.type,
+  if (!validate()) return
+  store.addTraining(form.value.employeeId!, {
+    type: form.value.type.trim(),
     completed: form.value.completed || null,
     expires: form.value.expires || null,
     status: form.value.status,
   })
-  form.value = { employeeId: '', type: '', completed: '', expires: '', status: 'Gyldig' }
   close()
 }
 </script>
 
 <template>
   <Teleport to="body">
-    <div v-if="modelValue" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" @click.self="close">
-      <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+    <Transition name="modal">
+      <div v-if="modelValue" class="overlay" @click.self="close">
+        <div class="modal">
+          <div class="modal-header">
+            <div class="modal-header-left">
+              <div class="modal-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 5v14M5 12h14"/>
+                </svg>
+              </div>
+              <div>
+                <h2 class="modal-title">Registrer opplæring</h2>
+                <p class="modal-sub">Legg til ny opplæring for en ansatt</p>
+              </div>
+            </div>
+            <button class="close-btn" @click="close" aria-label="Lukk">
+              <X :size="16" />
+            </button>
+          </div>
 
-        <div class="flex items-center justify-between px-6 py-5 border-b border-stone-100">
-          <h2 class="text-lg font-bold text-gray-900">Registrer opplæring</h2>
-          <button class="p-1.5 rounded-lg hover:bg-stone-100 text-gray-400 hover:text-gray-700 transition-colors" @click="close">
-            <X :size="17" />
-          </button>
+          <div class="modal-body">
+            <div class="field-group" :class="{ 'has-error': errors.employeeId }">
+              <label class="field-label">Ansatt <span class="required">*</span></label>
+              <div class="select-wrapper">
+                <select v-model="form.employeeId" class="form-input form-select">
+                  <option :value="null" disabled>Velg ansatt…</option>
+                  <option v-for="emp in employees" :key="emp.id" :value="emp.id">
+                    {{ emp.name }}
+                  </option>
+                </select>
+                <ChevronDown :size="14" class="select-icon" />
+              </div>
+              <span v-if="errors.employeeId" class="error-msg">{{ errors.employeeId }}</span>
+            </div>
+            <div class="field-group" :class="{ 'has-error': errors.type }">
+              <label class="field-label">Opplæringstype <span class="required">*</span></label>
+              <input
+                v-model="form.type"
+                class="form-input"
+                placeholder="F.eks. Brannvern, HMS, Førstehjelp…"
+                @input="delete errors.type"
+              />
+              <span v-if="errors.type" class="error-msg">{{ errors.type }}</span>
+            </div>
+            <div class="field-row">
+              <div class="field-group">
+                <label class="field-label">Fullført dato</label>
+                <input v-model="form.completed" class="form-input" placeholder="dd.mm.åååå" />
+              </div>
+              <div class="field-group">
+                <label class="field-label">Utløpsdato</label>
+                <input v-model="form.expires" class="form-input" placeholder="dd.mm.åååå" />
+              </div>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Status</label>
+              <div class="status-pills">
+                <button
+                  v-for="s in ['Gyldig', 'Utløper snart', 'Mangler']"
+                  :key="s"
+                  type="button"
+                  :class="['status-pill', `pill-${s.replace(' ', '-').toLowerCase()}`, { active: form.status === s }]"
+                  @click="form.status = s as typeof form.status"
+                >
+                  <span class="pill-dot" />
+                  {{ s }}
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="modal-footer">
+            <p class="required-note"><span class="required">*</span> Påkrevde felt</p>
+            <div class="footer-right">
+              <button class="btn-cancel" @click="close">Avbryt</button>
+              <button class="btn-save" @click="save">
+                <Check :size="14" /> Registrer
+              </button>
+            </div>
+          </div>
+
         </div>
-
-        <div class="px-6 py-5 flex flex-col gap-4">
-          <label class="field-label">
-            Ansatt
-            <select v-model="form.employeeId" class="form-input">
-              <option value="" disabled>Velg ansatt</option>
-              <option v-for="e in store.employees" :key="e.id" :value="e.id">{{ e.name }}</option>
-            </select>
-          </label>
-          <label class="field-label">
-            Opplæringstype
-            <input v-model="form.type" class="form-input" placeholder="F.eks. Kunnskapsprøve alkohol" />
-          </label>
-          <label class="field-label">
-            Fullført dato
-            <input v-model="form.completed" class="form-input" placeholder="dd.mm.åååå" />
-          </label>
-          <label class="field-label">
-            Utløpsdato
-            <input v-model="form.expires" class="form-input" placeholder="dd.mm.åååå" />
-          </label>
-          <label class="field-label">
-            Status
-            <select v-model="form.status" class="form-input">
-              <option>Gyldig</option>
-              <option>Utløper snart</option>
-              <option>Mangler</option>
-            </select>
-          </label>
-        </div>
-
-        <div class="flex justify-end gap-2 px-6 py-4 border-t border-stone-100">
-          <button class="border border-stone-200 rounded-lg px-4 py-2 text-sm text-gray-500 hover:bg-stone-50 transition-colors" @click="close">Avbryt</button>
-          <button class="flex items-center gap-1.5 bg-emerald-700 text-white rounded-lg px-4 py-2 text-sm font-semibold hover:bg-emerald-800 transition-colors" @click="save">
-            <Check :size="14" /> Lagre
-          </button>
-        </div>
-
       </div>
-    </div>
+    </Transition>
   </Teleport>
 </template>
 
 <style scoped>
-.field-label { @apply flex flex-col gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide; }
-.form-input  { @apply border border-stone-200 rounded-lg px-3 py-2 text-sm text-gray-800 bg-stone-50 outline-none focus:border-emerald-600 focus:bg-white transition-colors w-full font-normal normal-case tracking-normal; }
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 16px;
+}
+
+.modal {
+  background: #ffffff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 460px;
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,0.06),
+    0 8px 24px rgba(0,0,0,0.10),
+    0 24px 64px rgba(0,0,0,0.12);
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 18px;
+  border-bottom: 1px solid #f0eeee;
+}
+
+.modal-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.modal-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #f5f3ff;
+  color: #7c3aed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.modal-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.modal-sub {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin: 1px 0 0;
+}
+
+.close-btn {
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.close-btn:hover { background: #f5f5f4; color: #374151; }
+
+.modal-body {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.required { color: #7c3aed; }
+
+.form-input {
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 0.875rem;
+  color: #1f2937;
+  background: #fafafa;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+.form-input:focus {
+  border-color: #7c3aed;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.08);
+}
+.form-input::placeholder { color: #d1d5db; }
+
+.has-error .form-input {
+  border-color: #fca5a5;
+  background: #fff5f5;
+}
+.has-error .form-input:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
+}
+
+.error-msg {
+  font-size: 0.72rem;
+  color: #ef4444;
+  font-weight: 500;
+}
+
+.select-wrapper {
+  position: relative;
+}
+.form-select {
+  appearance: none;
+  padding-right: 32px;
+  cursor: pointer;
+}
+.select-icon {
+  position: absolute;
+  right: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+.status-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  background: #f3f4f6;
+  color: #6b7280;
+  transition: all 0.14s;
+  font-family: inherit;
+}
+
+.pill-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.5;
+  transition: opacity 0.14s;
+}
+
+.pill-gyldig { color: #059669; }
+.pill-gyldig:hover { background: #ecfdf5; border-color: #a7f3d0; }
+.pill-gyldig.active { background: #ecfdf5; border-color: #6ee7b7; color: #059669; }
+.pill-gyldig.active .pill-dot { opacity: 1; }
+
+.pill-utløper-snart { color: #d97706; }
+.pill-utløper-snart:hover { background: #fffbeb; border-color: #fcd34d; }
+.pill-utløper-snart.active { background: #fffbeb; border-color: #fcd34d; color: #d97706; }
+.pill-utløper-snart.active .pill-dot { opacity: 1; }
+
+.pill-mangler { color: #dc2626; }
+.pill-mangler:hover { background: #fff5f5; border-color: #fca5a5; }
+.pill-mangler.active { background: #fff5f5; border-color: #fca5a5; color: #dc2626; }
+.pill-mangler.active .pill-dot { opacity: 1; }
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px 20px;
+  border-top: 1px solid #f0eeee;
+}
+
+.required-note {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin: 0;
+}
+
+.footer-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-cancel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+  background: #fff5f5;
+  border: 1.5px solid #fecaca;
+  color: #ef4444;
+  font-family: inherit;
+}
+.btn-cancel:hover { background: #fee2e2; border-color: #fca5a5; }
+
+.btn-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+  background: #7c3aed;
+  border: none;
+  color: #fff;
+  font-family: inherit;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.30);
+}
+.btn-save:hover { background: #6d28d9; box-shadow: 0 4px 14px rgba(124, 58, 237, 0.38); }
+
+/* Transition */
+.modal-enter-active,
+.modal-leave-active { transition: opacity 0.2s ease; }
+.modal-enter-active .modal,
+.modal-leave-active .modal { transition: transform 0.22s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.2s ease; }
+.modal-enter-from,
+.modal-leave-to { opacity: 0; }
+.modal-enter-from .modal { transform: scale(0.96) translateY(8px); opacity: 0; }
+.modal-leave-to .modal { transform: scale(0.96) translateY(4px); opacity: 0; }
 </style>

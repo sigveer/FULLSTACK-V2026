@@ -39,68 +39,346 @@ function remove(): void {
 
 <template>
   <Teleport to="body">
-    <div v-if="modelValue" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" @click.self="close">
-      <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
-
-        <div class="flex items-center justify-between px-6 py-5 border-b border-stone-100">
-          <h2 class="text-lg font-bold text-gray-900">Rediger opplæring</h2>
-          <button class="p-1.5 rounded-lg hover:bg-stone-100 text-gray-400 hover:text-gray-700 transition-colors" @click="close">
-            <X :size="17" />
-          </button>
-        </div>
-
-        <div class="px-6 py-5 flex flex-col gap-4">
-          <label class="field-label">
-            Opplæringstype
-            <input v-model="form.type" class="form-input" />
-          </label>
-          <label class="field-label">
-            Fullført dato
-            <input v-model="form.completed" placeholder="dd.mm.åååå" class="form-input" />
-          </label>
-          <label class="field-label">
-            Utløpsdato
-            <input v-model="form.expires" placeholder="dd.mm.åååå" class="form-input" />
-          </label>
-          <label class="field-label">
-            Status
-            <select v-model="form.status" class="form-input">
-              <option>Gyldig</option>
-              <option>Utløper snart</option>
-              <option>Mangler</option>
-            </select>
-          </label>
-        </div>
-
-        <div class="flex items-center justify-between px-6 py-4 border-t border-stone-100">
-          <div>
-            <button
-              v-if="!deleteConfirm"
-              class="flex items-center gap-1.5 text-sm text-red-600 border border-red-200 rounded-lg px-3 py-2 hover:bg-red-50 transition-colors"
-              @click="deleteConfirm = true"
-            >
-              <Trash2 :size="14" /> Slett
+    <Transition name="modal">
+      <div
+        v-if="modelValue"
+        class="overlay"
+        @click.self="close"
+      >
+        <div class="modal">
+          <div class="modal-header">
+            <div class="modal-header-left">
+              <div class="modal-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+              </div>
+              <h2 class="modal-title">Rediger opplæring</h2>
+            </div>
+            <button class="close-btn" @click="close" aria-label="Lukk">
+              <X :size="16" />
             </button>
-            <div v-else class="flex items-center gap-2 text-sm text-red-600">
-              <span>Er du sikker?</span>
-              <button class="bg-red-600 text-white rounded-lg px-3 py-1.5 text-xs hover:bg-red-700 transition-colors" @click="remove">Ja</button>
-              <button class="border border-stone-200 rounded-lg px-3 py-1.5 text-xs text-gray-500 hover:bg-stone-50 transition-colors" @click="deleteConfirm = false">Nei</button>
+          </div>
+
+          <div class="modal-body">
+            <div class="field-group">
+              <label class="field-label">Opplæringstype</label>
+              <input v-model="form.type" class="form-input" placeholder="Skriv inn type..." />
+            </div>
+            <div class="field-row">
+              <div class="field-group">
+                <label class="field-label">Fullført dato</label>
+                <input v-model="form.completed" placeholder="dd.mm.åååå" class="form-input" />
+              </div>
+              <div class="field-group">
+                <label class="field-label">Utløpsdato</label>
+                <input v-model="form.expires" placeholder="dd.mm.åååå" class="form-input" />
+              </div>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Status</label>
+              <select v-model="form.status" class="form-input form-select">
+                <option>Gyldig</option>
+                <option>Utløper snart</option>
+                <option>Mangler</option>
+              </select>
             </div>
           </div>
-          <div class="flex gap-2">
-            <button class="border border-stone-200 rounded-lg px-4 py-2 text-sm text-gray-500 hover:bg-stone-50 transition-colors" @click="close">Avbryt</button>
-            <button class="flex items-center gap-1.5 bg-emerald-700 text-white rounded-lg px-4 py-2 text-sm font-semibold hover:bg-emerald-800 transition-colors" @click="save">
-              <Check :size="14" /> Lagre
-            </button>
-          </div>
-        </div>
 
+          <!-- Footer -->
+          <div class="modal-footer">
+            <div class="footer-left">
+              <button
+                v-if="!deleteConfirm"
+                class="delete-btn"
+                @click="deleteConfirm = true"
+              >
+                <Trash2 :size="13" /> Slett
+              </button>
+              <div v-else class="delete-confirm">
+                <span class="delete-confirm-text">Er du sikker?</span>
+                <button class="confirm-yes" @click="remove">Ja, slett</button>
+                <button class="confirm-no" @click="deleteConfirm = false">Nei</button>
+              </div>
+            </div>
+            <div class="footer-right">
+              <button class="btn-cancel" @click="close">Avbryt</button>
+              <button class="btn-save" @click="save">
+                <Check :size="14" /> Lagre
+              </button>
+            </div>
+          </div>
+
+        </div>
       </div>
-    </div>
+    </Transition>
   </Teleport>
 </template>
 
 <style scoped>
-.field-label { @apply flex flex-col gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide; }
-.form-input  { @apply border border-stone-200 rounded-lg px-3 py-2 text-sm text-gray-800 bg-stone-50 outline-none focus:border-emerald-600 focus:bg-white transition-colors w-full font-normal normal-case tracking-normal; }
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 16px;
+}
+
+.modal {
+  background: #ffffff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,0.06),
+    0 8px 24px rgba(0,0,0,0.10),
+    0 24px 64px rgba(0,0,0,0.12);
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 18px;
+  border-bottom: 1px solid #f0eeee;
+}
+
+.modal-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: #f5f3ff;
+  color: #7c3aed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.modal-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.close-btn {
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.close-btn:hover {
+  background: #f5f5f4;
+  color: #374151;
+}
+
+.modal-body {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.form-input {
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 0.875rem;
+  color: #1f2937;
+  background: #fafafa;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.form-input:focus {
+  border-color: #7c3aed;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.08);
+}
+
+.form-input::placeholder {
+  color: #d1d5db;
+}
+
+.form-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+  cursor: pointer;
+}
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px 20px;
+  border-top: 1px solid #f0eeee;
+  gap: 8px;
+}
+
+.footer-left { display: flex; align-items: center; }
+.footer-right { display: flex; align-items: center; gap: 8px; }
+
+.delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #ef4444;
+  background: transparent;
+  border: 1.5px solid #fecaca;
+  border-radius: 9px;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.delete-btn:hover {
+  background: #fff5f5;
+  border-color: #fca5a5;
+}
+
+.delete-confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.delete-confirm-text {
+  font-size: 0.8rem;
+  color: #ef4444;
+  font-weight: 500;
+}
+.confirm-yes {
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.confirm-yes:hover { background: #dc2626; }
+
+.confirm-no {
+  font-size: 0.78rem;
+  font-weight: 500;
+  background: transparent;
+  color: #6b7280;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.confirm-no:hover { background: #f9fafb; }
+
+.btn-cancel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+  background: #fff5f5;
+  border: 1.5px solid #fecaca;
+  color: #ef4444;
+  font-family: inherit;
+}
+.btn-cancel:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
+
+.btn-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+  background: #7c3aed;
+  border: none;
+  color: #fff;
+  font-family: inherit;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.30);
+}
+.btn-save:hover {
+  background: #6d28d9;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.38);
+}
+
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.2s ease;
+}
+.modal-enter-active .modal,
+.modal-leave-active .modal {
+  transition: transform 0.22s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.2s ease;
+}
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+.modal-enter-from .modal {
+  transform: scale(0.96) translateY(8px);
+  opacity: 0;
+}
+.modal-leave-to .modal {
+  transform: scale(0.96) translateY(4px);
+  opacity: 0;
+}
 </style>

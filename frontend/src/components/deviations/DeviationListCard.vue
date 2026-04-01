@@ -42,7 +42,6 @@ const statusLabel: Record<DeviationStatus, string> = {
   OPEN: 'Åpen',
   IN_PROGRESS: 'Under behandling',
   RESOLVED: 'Løst',
-  CLOSED: 'Løst',
 }
 
 const severityLabel: Record<DeviationSeverity, string> = {
@@ -63,7 +62,6 @@ const statusTone: Record<DeviationStatus, 'neutral' | 'ok' | 'danger' | 'warning
   OPEN: 'danger',
   IN_PROGRESS: 'warning',
   RESOLVED: 'ok',
-  CLOSED: 'ok',
 }
 
 const severityRailClass: Record<DeviationSeverity, string> = {
@@ -71,10 +69,6 @@ const severityRailClass: Record<DeviationSeverity, string> = {
   MEDIUM: 'deviation-card--medium',
   HIGH: 'deviation-card--high',
   CRITICAL: 'deviation-card--critical',
-}
-
-function normalizedStatus(status: DeviationStatus): DeviationStatus {
-  return status === 'RESOLVED' ? 'CLOSED' : status
 }
 
 const relativeTime = computed(() => toRelativeTime(props.deviation.reportedAt))
@@ -139,22 +133,22 @@ function toRelativeTime(value: string): string {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              :class="normalizedStatus(deviation.status) === 'OPEN' ? 'menu-item--active' : ''"
+              :class="deviation.status === 'OPEN' ? 'menu-item--active' : ''"
               @click="emits('update-status', { id: deviation.id, status: 'OPEN' })"
             >
               <CircleDot :size="16" class="menu-icon--red" />
               Åpen
             </DropdownMenuItem>
             <DropdownMenuItem
-              :class="normalizedStatus(deviation.status) === 'IN_PROGRESS' ? 'menu-item--active' : ''"
+              :class="deviation.status === 'IN_PROGRESS' ? 'menu-item--active' : ''"
               @click="emits('update-status', { id: deviation.id, status: 'IN_PROGRESS' })"
             >
               <Clock :size="16" class="menu-icon--amber" />
               Under behandling
             </DropdownMenuItem>
             <DropdownMenuItem
-              :class="normalizedStatus(deviation.status) === 'CLOSED' ? 'menu-item--active' : ''"
-              @click="emits('update-status', { id: deviation.id, status: 'CLOSED' })"
+              :class="deviation.status === 'RESOLVED' ? 'menu-item--active' : ''"
+              @click="emits('update-status', { id: deviation.id, status: 'RESOLVED' })"
             >
               <CheckCircle2 :size="16" class="menu-icon--green" />
               Løst

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onActivated, onMounted } from 'vue'
 import KpiCard from '@/components/dashboard/KpiCard.vue'
 import LatestDeviationCard from '@/components/dashboard/LatestDeviationCard.vue'
 import TemperatureLogCard from '@/components/dashboard/TemperatureLogCard.vue'
@@ -14,6 +14,19 @@ import type { DeviationSeverity } from '@/types/deviation'
 
 const deviationsQuery = useDeviationsQuery()
 const checklistsQuery = useChecklistsQuery()
+
+function refreshDashboardData() {
+  checklistsQuery.refetch()
+  deviationsQuery.refetch()
+}
+
+onMounted(() => {
+  refreshDashboardData()
+})
+
+onActivated(() => {
+  refreshDashboardData()
+})
 
 const kpis = computed<Array<{
   title: string

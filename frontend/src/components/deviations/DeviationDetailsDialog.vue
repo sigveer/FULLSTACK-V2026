@@ -45,7 +45,6 @@ const statusLabel: Record<DeviationStatus, string> = {
   OPEN: 'Åpen',
   IN_PROGRESS: 'Under behandling',
   RESOLVED: 'Løst',
-  CLOSED: 'Løst',
 }
 
 const severityLabel: Record<DeviationSeverity, string> = {
@@ -65,12 +64,8 @@ const severityTone: Record<DeviationSeverity, 'ok' | 'warning' | 'danger'> = {
 const availableStatuses: Array<{ value: DeviationStatus; label: string }> = [
   { value: 'OPEN', label: 'Åpen' },
   { value: 'IN_PROGRESS', label: 'Under behandling' },
-  { value: 'CLOSED', label: 'Løst' },
+  { value: 'RESOLVED', label: 'Løst' },
 ]
-
-function normalizedStatus(status: DeviationStatus): DeviationStatus {
-  return status === 'RESOLVED' ? 'CLOSED' : status
-}
 
 function onStatusClick(status: DeviationStatus) {
   if (!props.deviation) {
@@ -129,10 +124,6 @@ function onStatusClick(status: DeviationStatus) {
             <p>{{ deviation.resolvedAt ? new Date(deviation.resolvedAt).toLocaleString('nb-NO') : 'Ikke løst' }}</p>
           </div>
           <div>
-            <h4>Lukket</h4>
-            <p>{{ deviation.closedAt ? new Date(deviation.closedAt).toLocaleString('nb-NO') : 'Ikke lukket' }}</p>
-          </div>
-          <div>
             <h4>Sist oppdatert</h4>
             <p>{{ new Date(deviation.updatedAt).toLocaleString('nb-NO') }}</p>
           </div>
@@ -146,7 +137,7 @@ function onStatusClick(status: DeviationStatus) {
               :key="statusOption.value"
               type="button"
               class="status-button"
-              :class="{ 'status-button--active': normalizedStatus(deviation.status) === statusOption.value }"
+              :class="{ 'status-button--active': deviation.status === statusOption.value }"
               @click="onStatusClick(statusOption.value)"
             >
               {{ statusOption.label }}

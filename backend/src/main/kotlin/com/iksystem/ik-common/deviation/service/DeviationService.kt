@@ -107,12 +107,6 @@ class DeviationService(
 
         val resolvedAt = when (request.status) {
             DeviationStatus.RESOLVED -> existing.resolvedAt ?: now
-            DeviationStatus.CLOSED -> existing.resolvedAt ?: now
-            else -> null
-        }
-
-        val closedAt = when (request.status) {
-            DeviationStatus.CLOSED -> existing.closedAt ?: now
             else -> null
         }
 
@@ -120,7 +114,6 @@ class DeviationService(
             existing.copy(
                 status = request.status,
                 resolvedAt = resolvedAt,
-                closedAt = closedAt,
                 updatedAt = now,
             )
         )
@@ -175,7 +168,6 @@ private fun Deviation.toResponse(): DeviationResponse = DeviationResponse(
     assignedToUserName = assignedToUser?.fullName,
     reportedAt = reportedAt.toString(),
     resolvedAt = resolvedAt?.toString(),
-    closedAt = closedAt?.toString(),
     createdAt = createdAt.toString(),
     updatedAt = updatedAt.toString(),
 )

@@ -9,8 +9,7 @@ INSERT INTO deviations (
     reported_by_user_id,
     assigned_to_user_id,
     reported_at,
-    resolved_at,
-    closed_at
+    resolved_at
 )
 VALUES
     (
@@ -24,7 +23,6 @@ VALUES
         (SELECT id FROM users WHERE email = 'employee@iksystem.local'),
         (SELECT id FROM users WHERE email = 'manager@iksystem.local'),
         DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 2 HOUR),
-        NULL,
         NULL
     ),
     (
@@ -38,7 +36,6 @@ VALUES
         (SELECT id FROM users WHERE email = 'manager@iksystem.local'),
         (SELECT id FROM users WHERE email = 'admin@iksystem.local'),
         DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 DAY),
-        NULL,
         NULL
     ),
     (
@@ -52,7 +49,6 @@ VALUES
         (SELECT id FROM users WHERE email = 'employee@iksystem.local'),
         (SELECT id FROM users WHERE email = 'manager@iksystem.local'),
         DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 2 DAY),
-        NULL,
         NULL
     ),
     (
@@ -66,8 +62,7 @@ VALUES
         (SELECT id FROM users WHERE email = 'employee@iksystem.local'),
         (SELECT id FROM users WHERE email = 'manager@iksystem.local'),
         DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 3 DAY),
-        DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 2 DAY),
-        NULL
+        DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 2 DAY)
     ),
     (
         (SELECT id FROM organizations WHERE name = 'Demo Organization'),
@@ -76,10 +71,9 @@ VALUES
         'Nyansatt har ikke fullført dokumentert opplaering i ansvarlig skjenking.',
         'Midlertidig omplassering til oppgaver uten alkoholservering.',
         'MEDIUM',
-        'CLOSED',
+        'RESOLVED',
         (SELECT id FROM users WHERE email = 'admin@iksystem.local'),
         (SELECT id FROM users WHERE email = 'admin@iksystem.local'),
         DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 5 DAY),
-        DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 4 DAY),
-        DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 3 DAY)
+        DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 4 DAY)
     );

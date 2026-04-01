@@ -79,7 +79,6 @@ const statusLabel: Record<DeviationStatus, string> = {
   OPEN: 'Åpen',
   IN_PROGRESS: 'Under behandling',
   RESOLVED: 'Løst',
-  CLOSED: 'Løst',
 }
 
 const severityLabel: Record<DeviationSeverity, string> = {
@@ -87,10 +86,6 @@ const severityLabel: Record<DeviationSeverity, string> = {
   MEDIUM: 'Middels',
   HIGH: 'Høy',
   CRITICAL: 'Kritisk',
-}
-
-function normalizedStatus(status: DeviationStatus): DeviationStatus {
-  return status === 'RESOLVED' ? 'CLOSED' : status
 }
 
 function formatDate(value: string | null): string {
@@ -242,11 +237,6 @@ function handleMutationError(error: unknown, fallbackMessage: string) {
                   <span class="date-label">Løst</span>
                   <span class="date-value">{{ formatDate(deviation.resolvedAt) }}</span>
                 </div>
-                <div v-if="deviation.closedAt" class="date-row">
-                  <CheckCircle2 :size="15" class="date-icon date-icon--green" />
-                  <span class="date-label">Lukket</span>
-                  <span class="date-value">{{ formatDate(deviation.closedAt) }}</span>
-                </div>
               </div>
             </div>
 
@@ -257,7 +247,7 @@ function handleMutationError(error: unknown, fallbackMessage: string) {
                 <button
                   type="button"
                   class="status-btn status-btn--open"
-                  :class="{ 'status-btn--active': normalizedStatus(deviation.status) === 'OPEN' }"
+                  :class="{ 'status-btn--active': deviation.status === 'OPEN' }"
                   @click="onStatusClick('OPEN')"
                 >
                   <CircleDot :size="16" />
@@ -266,7 +256,7 @@ function handleMutationError(error: unknown, fallbackMessage: string) {
                 <button
                   type="button"
                   class="status-btn status-btn--in-progress"
-                  :class="{ 'status-btn--active': normalizedStatus(deviation.status) === 'IN_PROGRESS' }"
+                  :class="{ 'status-btn--active': deviation.status === 'IN_PROGRESS' }"
                   @click="onStatusClick('IN_PROGRESS')"
                 >
                   <Clock :size="16" />
@@ -275,8 +265,8 @@ function handleMutationError(error: unknown, fallbackMessage: string) {
                 <button
                   type="button"
                   class="status-btn status-btn--resolved"
-                  :class="{ 'status-btn--active': normalizedStatus(deviation.status) === 'CLOSED' }"
-                  @click="onStatusClick('CLOSED')"
+                  :class="{ 'status-btn--active': deviation.status === 'RESOLVED' }"
+                  @click="onStatusClick('RESOLVED')"
                 >
                   <CheckCircle2 :size="16" />
                   Løst

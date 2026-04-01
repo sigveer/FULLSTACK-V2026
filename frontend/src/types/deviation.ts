@@ -1,6 +1,6 @@
 export type DeviationModule = 'IK_MAT' | 'IK_ALKOHOL'
 export type DeviationSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
-export type DeviationStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED'
+export type DeviationStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED'
 
 export interface Deviation {
   id: number
@@ -17,7 +17,6 @@ export interface Deviation {
   assignedToUserName: string | null
   reportedAt: string
   resolvedAt: string | null
-  closedAt: string | null
   createdAt: string
   updatedAt: string
 }

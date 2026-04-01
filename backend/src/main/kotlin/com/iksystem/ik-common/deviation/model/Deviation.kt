@@ -61,9 +61,6 @@ data class Deviation(
     @Column(name = "resolved_at")
     val resolvedAt: Instant? = null,
 
-    @Column(name = "closed_at")
-    val closedAt: Instant? = null,
-
     @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: Instant = Instant.now(),
 

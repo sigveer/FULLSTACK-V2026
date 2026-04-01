@@ -99,11 +99,13 @@ const moduleCards = computed(() => [
     key: 'IK_MAT',
     label: 'IK-Mat',
     count: countByModule(deviations.value, 'IK_MAT'),
+    className: 'status-card--neutral',
   },
   {
     key: 'IK_ALKOHOL',
     label: 'IK-Alkohol',
     count: countByModule(deviations.value, 'IK_ALKOHOL'),
+    className: 'status-card--neutral',
   },
 ])
 
@@ -175,16 +177,16 @@ function countSolved(items: Deviation[]): number {
   return items.filter((item) => isSolved(getEffectiveStatus(item))).length
 }
 
+function countByModule(items: Deviation[], module: DeviationModule): number {
+  return items.filter((item) => item.module === module).length
+}
+
 function getEffectiveStatus(item: Deviation): DeviationStatus {
   return statusOverrides.value[item.id] ?? item.status
 }
 
 function isSolved(status: DeviationStatus): boolean {
-  return status === 'RESOLVED' || status === 'CLOSED'
-}
-
-function countByModule(items: Deviation[], module: DeviationModule): number {
-  return items.filter((item) => item.module === module).length
+  return status === 'RESOLVED'
 }
 
 function handleOpenDetails(deviation: Deviation) {
@@ -239,7 +241,7 @@ async function handleDeleteAllSolved() {
 }
 
 async function handleStatusUpdate(payload: { id: number; status: DeviationStatus }) {
-  const nextStatus = payload.status === 'RESOLVED' ? 'CLOSED' : payload.status
+  const nextStatus = payload.status
   const previous = deviations.value.find((item) => item.id === payload.id)
   const previousStatus = previous ? getEffectiveStatus(previous) : null
   const shouldDelayMove = previousStatus ? isSolved(nextStatus) && !isSolved(previousStatus) : false
@@ -320,19 +322,15 @@ function handleMutationError(error: unknown, fallbackMessage: string) {
       </section>
 
       <section class="cards-section" aria-label="Statusoversikt">
-        <div class="cards-group">
-          <article v-for="card in moduleCards" :key="card.key" class="status-card">
-            <span>{{ card.label }}</span>
-            <strong>{{ card.count }}</strong>
-          </article>
-        </div>
+        <article v-for="card in moduleCards" :key="card.key" :class="['status-card', card.className]">
+          <span>{{ card.label }}</span>
+          <strong>{{ card.count }}</strong>
+        </article>
 
-        <div class="cards-group">
-          <article v-for="card in statusCards" :key="card.key" :class="['status-card', card.className]">
-            <span>{{ card.label }}</span>
-            <strong>{{ card.count }}</strong>
-          </article>
-        </div>
+        <article v-for="card in statusCards" :key="card.key" :class="['status-card', card.className]">
+          <span>{{ card.label }}</span>
+          <strong>{{ card.count }}</strong>
+        </article>
       </section>
 
       <section class="filters-row">
@@ -490,28 +488,16 @@ h1 {
 }
 
 .cards-section {
-  display: flex;
-  gap: 20px;
-}
-
-.cards-group {
   display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
-  flex: 1;
-}
-
-.cards-group:first-child {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.cards-group:last-child {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .status-card {
-  border: 1px solid var(--border);
+  border: 2px solid #d1d5db;
   border-radius: var(--radius-md);
   padding: 12px;
+  min-height: 6.25rem;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -522,22 +508,31 @@ h1 {
 .status-card strong { font-size: 2rem; letter-spacing: -0.02em; }
 
 .status-card--open {
-  background: #fdf5f5;
-  border-color: #f0d0d0;
+  background: #f5e8ea;
+  border-color: #e0aeb5;
 }
 .status-card--open strong { color: #a62929; }
 
 .status-card--in-progress {
-  background: #fdf9f0;
-  border-color: #f0ddb0;
+  background: #f1e7d6;
+  border-color: #e0bf81;
 }
 .status-card--in-progress strong { color: #946013; }
 
 .status-card--resolved {
-  background: #f3faf2;
-  border-color: #c8e4c2;
+  background: #e4eddc;
+  border-color: #b7d18e;
 }
 .status-card--resolved strong { color: #3c8f2c; }
+
+.status-card--neutral {
+  background: #ffffff;
+  border-color: #d1d5db;
+}
+
+.status-card--neutral strong {
+  color: #111827;
+}
 
 .filters-row {
   display: flex;
@@ -687,13 +682,12 @@ h1 {
 }
 
 @media (max-width: 1100px) {
-  .cards-section { flex-direction: column; gap: 10px; }
+  .cards-section { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 760px) {
   .header-row { flex-direction: column; }
-  .cards-group:first-child { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .cards-group:last-child { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cards-section { grid-template-columns: 1fr; }
   .filters-row { align-items: stretch; }
   .filters-left { flex-direction: column; }
   .filters-right { width: 100%; justify-content: flex-end; }

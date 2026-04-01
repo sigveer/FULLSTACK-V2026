@@ -64,7 +64,6 @@ data class DeviationResponse(
     val assignedToUserName: String?,
     val reportedAt: String,
     val resolvedAt: String?,
-    val closedAt: String?,
     val createdAt: String,
     val updatedAt: String,
 )

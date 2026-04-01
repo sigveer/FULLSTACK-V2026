@@ -7,5 +7,4 @@ enum class DeviationStatus {
     OPEN,
     IN_PROGRESS,
     RESOLVED,
-    CLOSED,
 }

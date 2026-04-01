@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
 const props = withDefaults(
   defineProps<{
     title: string
@@ -17,10 +19,14 @@ const props = withDefaults(
   },
 )
 
-const progressPercent =
-  props.progress && props.progress.total > 0
-    ? Math.round((props.progress.current / props.progress.total) * 100)
-    : 0
+const progressPercent = computed(() => {
+  if (!props.progress || props.progress.total <= 0) {
+    return 0
+  }
+
+  const ratio = props.progress.current / props.progress.total
+  return Math.max(0, Math.min(100, Math.round(ratio * 100)))
+})
 </script>
 
 <template>

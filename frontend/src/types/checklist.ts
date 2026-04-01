@@ -5,6 +5,7 @@ export interface ChecklistItem {
   title: string
   description: string | null
   completed: boolean
+  completedAt: string | null
 }
 
 export type ChecklistStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED'

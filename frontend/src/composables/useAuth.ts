@@ -1,10 +1,12 @@
-import { useMutation, useQueryClient } from '@tanstack/vue-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { computed, watch } from 'vue'
 import api from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 import type {
   AuthResponse,
   LoginRequest,
   LoginResponse,
+  MembershipSummary,
   RegisterRequest,
   SelectOrgRequest,
 } from '@/types/auth'
@@ -59,9 +61,26 @@ export function useSwitchOrg() {
       api.post<AuthResponse>('/auth/switch-org', data).then((r) => r.data),
     onSuccess: (data) => {
       auth.setAuth(data)
-      queryClient.clear()
+      queryClient.resetQueries()
     },
   })
+}
+
+export function useMemberships() {
+  const auth = useAuthStore()
+
+  const query = useQuery({
+    queryKey: ['memberships'],
+    queryFn: () =>
+      api.get<MembershipSummary[]>('/auth/memberships').then((r) => r.data),
+    enabled: computed(() => auth.isAuthenticated),
+  })
+
+  watch(query.data, (data) => {
+    if (data) auth.setMemberships(data)
+  })
+
+  return query
 }
 
 export function useLogout() {

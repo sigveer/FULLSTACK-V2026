@@ -12,7 +12,9 @@ const elRef = ref<HTMLElement | null>(null)
 
 onMounted(() => {
   if (elRef.value) {
-    triggerRef.value = elRef.value
+    // display:contents has no box — use first child element for positioning
+    const child = elRef.value.firstElementChild as HTMLElement | null
+    triggerRef.value = child ?? elRef.value
   }
 })
 </script>

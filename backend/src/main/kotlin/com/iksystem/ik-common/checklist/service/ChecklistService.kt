@@ -202,6 +202,7 @@ private fun ChecklistItem.toResponse(): ChecklistItemResponse = ChecklistItemRes
     title = title,
     description = description,
     completed = completed,
+    completedAt = completedAt,
 )
 
 private fun List<ChecklistItem>.toChecklistStatus(): ChecklistStatus {

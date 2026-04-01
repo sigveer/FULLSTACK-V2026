@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import axios from 'axios'
 import { computed, ref, watch } from 'vue'
-import { AlertTriangle } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
+import { AlertTriangle, Trash2 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import Button from '@/components/ui/button/Button.vue'
@@ -16,7 +17,11 @@ import AlertDialogTitle from '@/components/ui/alert-dialog/AlertDialogTitle.vue'
 import AlertDialogTrigger from '@/components/ui/alert-dialog/AlertDialogTrigger.vue'
 import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
-import DeviationDetailsDialog from '@/components/deviations/DeviationDetailsDialog.vue'
+import Select from '@/components/ui/select/Select.vue'
+import SelectContent from '@/components/ui/select/SelectContent.vue'
+import SelectItem from '@/components/ui/select/SelectItem.vue'
+import SelectTrigger from '@/components/ui/select/SelectTrigger.vue'
+import SelectValue from '@/components/ui/select/SelectValue.vue'
 import DeviationListCard from '@/components/deviations/DeviationListCard.vue'
 import DeviationFormDialog from '@/components/deviations/DeviationFormDialog.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -37,9 +42,10 @@ import type {
 } from '@/types/deviation'
 
 type ModuleFilter = 'ALL' | DeviationModule
+type StatusFilter = 'ACTIVE' | 'IN_PROGRESS' | 'SOLVED'
 type SortOrder = 'NEWEST_FIRST' | 'OLDEST_FIRST'
-type ListMode = 'ACTIVE' | 'SOLVED'
 
+const router = useRouter()
 const auth = useAuthStore()
 const deviationsQuery = useDeviationsQuery()
 const createDeviation = useCreateDeviationMutation()
@@ -48,10 +54,9 @@ const updateDeviationStatus = useUpdateDeviationStatusMutation()
 const deleteDeviation = useDeleteDeviationMutation()
 
 const activeModuleFilter = ref<ModuleFilter>('ALL')
+const activeStatusFilter = ref<StatusFilter>('ACTIVE')
 const sortOrder = ref<SortOrder>('NEWEST_FIRST')
-const listMode = ref<ListMode>('ACTIVE')
 const createDialogOpen = ref(false)
-const detailsDialogOpen = ref(false)
 const editDialogOpen = ref(false)
 const activeDeviation = ref<Deviation | null>(null)
 const transitioningResolvedIds = ref<number[]>([])
@@ -84,17 +89,23 @@ const assigneeOptions = computed(() => {
     }))
   }
 
-  if (!auth.user) {
-    return []
-  }
+  if (!auth.user) return []
 
-  return [
-    {
-      userId: auth.user.id,
-      label: `${auth.user.fullName} (Deg)`,
-    },
-  ]
+  return [{ userId: auth.user.id, label: `${auth.user.fullName} (Deg)` }]
 })
+
+const moduleCards = computed(() => [
+  {
+    key: 'IK_MAT',
+    label: 'IK-Mat',
+    count: countByModule(deviations.value, 'IK_MAT'),
+  },
+  {
+    key: 'IK_ALKOHOL',
+    label: 'IK-Alkohol',
+    count: countByModule(deviations.value, 'IK_ALKOHOL'),
+  },
+])
 
 const statusCards = computed(() => [
   {
@@ -117,34 +128,17 @@ const statusCards = computed(() => [
   },
 ])
 
-const moduleFilters = computed(() => [
-  { label: `Alle (${deviations.value.length})`, value: 'ALL' as const },
-  { label: `IK-Mat (${countByModule(deviations.value, 'IK_MAT')})`, value: 'IK_MAT' as const },
-  {
-    label: `IK-Alkohol (${countByModule(deviations.value, 'IK_ALKOHOL')})`,
-    value: 'IK_ALKOHOL' as const,
-  },
-])
+const statusFilters: Array<{ label: string; value: StatusFilter }> = [
+  { label: 'Aktive', value: 'ACTIVE' },
+  { label: 'Under behandling', value: 'IN_PROGRESS' },
+  { label: 'Løste', value: 'SOLVED' },
+]
 
-const listModeFilters = computed(() => {
-  const byModule =
-    activeModuleFilter.value === 'ALL'
-      ? deviations.value
-      : deviations.value.filter((item) => item.module === activeModuleFilter.value)
-
-  const activeCount = byModule.filter(
-    (item) => !isSolved(getEffectiveStatus(item)) || transitioningResolvedIds.value.includes(item.id),
-  ).length
-
-  const resolvedCount = byModule.filter(
-    (item) => isSolved(getEffectiveStatus(item)) && !transitioningResolvedIds.value.includes(item.id),
-  ).length
-
-  return [
-    { label: `Aktive (${activeCount})`, value: 'ACTIVE' as const },
-    { label: `Løste (${resolvedCount})`, value: 'SOLVED' as const },
-  ]
-})
+const moduleFilters: Array<{ label: string; value: ModuleFilter }> = [
+  { label: 'Alle', value: 'ALL' },
+  { label: 'IK-Mat', value: 'IK_MAT' },
+  { label: 'IK-Alkohol', value: 'IK_ALKOHOL' },
+]
 
 const filteredAndSortedDeviations = computed(() => {
   const moduleFiltered =
@@ -152,14 +146,19 @@ const filteredAndSortedDeviations = computed(() => {
       ? deviations.value
       : deviations.value.filter((item) => item.module === activeModuleFilter.value)
 
-  const statusFiltered =
-    listMode.value === 'ACTIVE'
-      ? moduleFiltered.filter(
-          (item) => !isSolved(getEffectiveStatus(item)) || transitioningResolvedIds.value.includes(item.id),
-        )
-      : moduleFiltered.filter(
-          (item) => isSolved(getEffectiveStatus(item)) && !transitioningResolvedIds.value.includes(item.id),
-        )
+  const statusFiltered = moduleFiltered.filter((item) => {
+    const status = getEffectiveStatus(item)
+    const isTransitioning = transitioningResolvedIds.value.includes(item.id)
+
+    switch (activeStatusFilter.value) {
+      case 'ACTIVE':
+        return status === 'OPEN' || isTransitioning
+      case 'IN_PROGRESS':
+        return status === 'IN_PROGRESS'
+      case 'SOLVED':
+        return isSolved(status) && !isTransitioning
+    }
+  })
 
   return [...statusFiltered].sort((a, b) => {
     const aTime = new Date(a.reportedAt).getTime()
@@ -188,15 +187,13 @@ function countByModule(items: Deviation[], module: DeviationModule): number {
   return items.filter((item) => item.module === module).length
 }
 
-function handleEdit(deviation: Deviation) {
-  detailsDialogOpen.value = false
-  activeDeviation.value = deviation
-  editDialogOpen.value = true
+function handleOpenDetails(deviation: Deviation) {
+  router.push(`/avvik/${deviation.id}`)
 }
 
-function handleOpenDetails(deviation: Deviation) {
+function handleEdit(deviation: Deviation) {
   activeDeviation.value = deviation
-  detailsDialogOpen.value = true
+  editDialogOpen.value = true
 }
 
 function openCreateDialog() {
@@ -227,34 +224,14 @@ async function handleUpdate(payload: { id: number; data: UpdateDeviationRequest 
   }
 }
 
-async function handleDelete(id: number) {
-  try {
-    await deleteDeviation.mutateAsync(id)
-    const nextOverrides = { ...statusOverrides.value }
-    delete nextOverrides[id]
-    statusOverrides.value = nextOverrides
-    if (activeDeviation.value?.id === id) {
-      activeDeviation.value = null
-      detailsDialogOpen.value = false
-      editDialogOpen.value = false
-    }
-    toast.success('Avvik slettet')
-  } catch (error) {
-    handleMutationError(error, 'Kunne ikke slette avvik')
-  }
-}
-
 async function handleDeleteAllSolved() {
   const ids = filteredAndSortedDeviations.value.map((item) => item.id)
-  if (ids.length === 0) {
-    return
-  }
+  if (ids.length === 0) return
 
   try {
     for (const id of ids) {
       await deleteDeviation.mutateAsync(id)
     }
-
     toast.success(`Slettet ${ids.length} løste avvik`)
   } catch (error) {
     handleMutationError(error, 'Kunne ikke slette alle løste avvik')
@@ -267,27 +244,14 @@ async function handleStatusUpdate(payload: { id: number; status: DeviationStatus
   const previousStatus = previous ? getEffectiveStatus(previous) : null
   const shouldDelayMove = previousStatus ? isSolved(nextStatus) && !isSolved(previousStatus) : false
 
-  statusOverrides.value = {
-    ...statusOverrides.value,
-    [payload.id]: nextStatus,
-  }
-
-  if (activeDeviation.value?.id === payload.id) {
-    activeDeviation.value = {
-      ...activeDeviation.value,
-      status: nextStatus,
-    }
-  }
+  statusOverrides.value = { ...statusOverrides.value, [payload.id]: nextStatus }
 
   if (shouldDelayMove && !transitioningResolvedIds.value.includes(payload.id)) {
     transitioningResolvedIds.value = [...transitioningResolvedIds.value, payload.id]
   }
 
   try {
-    await updateDeviationStatus.mutateAsync({
-      id: payload.id,
-      payload: { status: nextStatus },
-    })
+    await updateDeviationStatus.mutateAsync({ id: payload.id, payload: { status: nextStatus } })
 
     if (shouldDelayMove) {
       setTimeout(() => {
@@ -300,15 +264,25 @@ async function handleStatusUpdate(payload: { id: number; status: DeviationStatus
     const nextOverrides = { ...statusOverrides.value }
     delete nextOverrides[payload.id]
     statusOverrides.value = nextOverrides
-    if (activeDeviation.value?.id === payload.id && previousStatus) {
-      activeDeviation.value = {
-        ...activeDeviation.value,
-        status: previousStatus,
-      }
-    }
     transitioningResolvedIds.value = transitioningResolvedIds.value.filter((id) => id !== payload.id)
     handleMutationError(error, 'Kunne ikke oppdatere status')
   }
+}
+
+async function handleDelete(id: number) {
+  try {
+    await deleteDeviation.mutateAsync(id)
+    const nextOverrides = { ...statusOverrides.value }
+    delete nextOverrides[id]
+    statusOverrides.value = nextOverrides
+    toast.success('Avvik slettet')
+  } catch (error) {
+    handleMutationError(error, 'Kunne ikke slette avvik')
+  }
+}
+
+function onSortChange(value: string) {
+  sortOrder.value = value as SortOrder
 }
 
 function handleMutationError(error: unknown, fallbackMessage: string) {
@@ -319,7 +293,6 @@ function handleMutationError(error: unknown, fallbackMessage: string) {
       return
     }
   }
-
   toast.error(fallbackMessage)
 }
 </script>
@@ -346,36 +319,45 @@ function handleMutationError(error: unknown, fallbackMessage: string) {
         </Button>
       </section>
 
-      <section class="status-grid" aria-label="Statusoversikt">
-        <article v-for="card in statusCards" :key="card.key" :class="['status-card', card.className]">
-          <span>{{ card.label }}</span>
-          <strong>{{ card.count }}</strong>
-        </article>
+      <section class="cards-section" aria-label="Statusoversikt">
+        <div class="cards-group">
+          <article v-for="card in moduleCards" :key="card.key" class="status-card">
+            <span>{{ card.label }}</span>
+            <strong>{{ card.count }}</strong>
+          </article>
+        </div>
+
+        <div class="cards-group">
+          <article v-for="card in statusCards" :key="card.key" :class="['status-card', card.className]">
+            <span>{{ card.label }}</span>
+            <strong>{{ card.count }}</strong>
+          </article>
+        </div>
       </section>
 
       <section class="filters-row">
-        <div class="filters-stack">
-          <div class="module-filters">
+        <div class="filters-left">
+          <div class="filter-group">
             <button
-              v-for="filter in moduleFilters"
+              v-for="filter in statusFilters"
               :key="filter.value"
-              type="button"
               class="filter-button"
-              :class="{ 'filter-button--active': activeModuleFilter === filter.value }"
-              @click="activeModuleFilter = filter.value"
+              :class="{ 'filter-button--active': activeStatusFilter === filter.value }"
+              type="button"
+              @click="activeStatusFilter = filter.value"
             >
               {{ filter.label }}
             </button>
           </div>
 
-          <div class="module-filters">
+          <div class="filter-group">
             <button
-              v-for="filter in listModeFilters"
+              v-for="filter in moduleFilters"
               :key="filter.value"
-              type="button"
               class="filter-button"
-              :class="{ 'filter-button--active': listMode === filter.value }"
-              @click="listMode = filter.value"
+              :class="{ 'filter-button--active': activeModuleFilter === filter.value }"
+              type="button"
+              @click="activeModuleFilter = filter.value"
             >
               {{ filter.label }}
             </button>
@@ -383,9 +365,20 @@ function handleMutationError(error: unknown, fallbackMessage: string) {
         </div>
 
         <div class="filters-right">
-          <AlertDialog v-if="listMode === 'SOLVED'">
+          <Select :model-value="sortOrder" default-value="NEWEST_FIRST" @update:model-value="onSortChange">
+            <SelectTrigger class="sort-trigger">
+              <SelectValue placeholder="Nyeste først" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="NEWEST_FIRST">Nyeste først</SelectItem>
+              <SelectItem value="OLDEST_FIRST">Eldste først</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <AlertDialog v-if="activeStatusFilter === 'SOLVED'">
             <AlertDialogTrigger>
-              <Button variant="destructive" :disabled="filteredAndSortedDeviations.length === 0">
+              <Button variant="destructive" class="delete-all-btn" :disabled="filteredAndSortedDeviations.length === 0">
+                <Trash2 />
                 Slett alle løste
               </Button>
             </AlertDialogTrigger>
@@ -404,23 +397,24 @@ function handleMutationError(error: unknown, fallbackMessage: string) {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-
-          <label class="sorter">
-            <span>Sorter:</span>
-            <select v-model="sortOrder">
-              <option value="NEWEST_FIRST">Nyeste først</option>
-              <option value="OLDEST_FIRST">Eldste først</option>
-            </select>
-          </label>
         </div>
       </section>
 
       <section class="list-section">
         <p v-if="deviationsQuery.isLoading.value" class="state-line">Laster avvik...</p>
 
-        <p v-else-if="deviationsQuery.isError.value" class="state-line state-line--danger">
-          Kunne ikke hente avvik.
-        </p>
+        <div v-else-if="deviationsQuery.isError.value" class="empty-state">
+          <div class="empty-state-bg" />
+          <div class="empty-state-inner">
+            <div class="empty-state-icon">
+              <AlertTriangle :stroke-width="1.5" />
+            </div>
+            <div class="empty-state-text">
+              <h3>Kunne ikke hente avvik</h3>
+              <p>Noe gikk galt under lasting av avvik. Prøv igjen senere.</p>
+            </div>
+          </div>
+        </div>
 
         <div v-else-if="filteredAndSortedDeviations.length === 0" class="empty-state">
           <div class="empty-state-bg" />
@@ -440,7 +434,11 @@ function handleMutationError(error: unknown, fallbackMessage: string) {
             v-for="item in filteredAndSortedDeviations"
             :key="item.id"
             :deviation="item"
+            :can-manage="canManage"
             @open="handleOpenDetails"
+            @edit="handleEdit"
+            @update-status="handleStatusUpdate"
+            @delete="handleDelete"
           />
         </div>
       </section>
@@ -452,15 +450,6 @@ function handleMutationError(error: unknown, fallbackMessage: string) {
       :submitting="createDeviation.isPending.value"
       :assignees="assigneeOptions"
       @create="handleCreate"
-    />
-
-    <DeviationDetailsDialog
-      v-model:open="detailsDialogOpen"
-      :deviation="activeDeviation"
-      :can-manage="canManage"
-      @edit="handleEdit"
-      @delete="handleDelete"
-      @update-status="handleStatusUpdate"
     />
 
     <DeviationFormDialog
@@ -495,63 +484,60 @@ h1 {
 }
 
 .header-row p {
-  margin-top: 5px;
+  margin-top: 6px;
   color: var(--text-secondary);
   font-size: 1.08rem;
 }
 
-.status-grid {
+.cards-section {
+  display: flex;
+  gap: 20px;
+}
+
+.cards-group {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  flex: 1;
+}
+
+.cards-group:first-child {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cards-group:last-child {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .status-card {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  background: var(--card-bg);
   padding: 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  background: var(--card-bg);
 }
 
-.status-card span {
-  font-size: 1rem;
-}
-
-.status-card strong {
-  font-size: 2rem;
-  letter-spacing: -0.02em;
-}
+.status-card span { font-size: 1rem; }
+.status-card strong { font-size: 2rem; letter-spacing: -0.02em; }
 
 .status-card--open {
-  border-color: #e7bdbd;
+  background: #fdf5f5;
+  border-color: #f0d0d0;
 }
-
-.status-card--open strong {
-  color: #a62929;
-}
+.status-card--open strong { color: #a62929; }
 
 .status-card--in-progress {
-  border-color: #eccf9f;
+  background: #fdf9f0;
+  border-color: #f0ddb0;
 }
-
-.status-card--in-progress strong {
-  color: #946013;
-}
+.status-card--in-progress strong { color: #946013; }
 
 .status-card--resolved {
-  border-color: #b8d8b1;
+  background: #f3faf2;
+  border-color: #c8e4c2;
 }
-
-.status-card--resolved strong {
-  color: #3c8f2c;
-}
-
-.status-card--closed {
-  border-color: #d8d8d8;
-}
+.status-card--resolved strong { color: #3c8f2c; }
 
 .filters-row {
   display: flex;
@@ -561,55 +547,58 @@ h1 {
   flex-wrap: wrap;
 }
 
-.module-filters {
+.filters-left {
   display: flex;
-  gap: 8px;
+  gap: 24px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filter-group {
+  display: flex;
+  gap: 4px;
   flex-wrap: wrap;
 }
 
-.filters-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
 .filter-button {
-  border: 1px solid #d2d2cf;
-  background: #f4f4f2;
-  color: #434a52;
-  border-radius: var(--radius-md);
-  padding: 8px 14px;
-  font-size: 1rem;
+  border: 1px solid #cfcfc9;
+  border-radius: var(--radius-pill);
+  background: #f3f3f2;
+  padding: 8px 16px;
   cursor: pointer;
-  transition: all 150ms ease;
+  font-size: 0.95rem;
+  color: #32363d;
 }
 
 .filter-button--active {
-  background: var(--brand);
-  color: #fff;
-  border-color: var(--brand);
-}
-
-.sorter {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--text-secondary);
+  border-color: #4f4bcf;
+  background: #eeedff;
+  color: #403db1;
+  font-weight: 600;
 }
 
 .filters-right {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 10px;
   margin-left: auto;
 }
 
-.sorter select {
-  height: 2.25rem;
-  border-radius: var(--radius-md);
-  border: 1px solid #d2d2cf;
-  padding: 0 10px;
-  background: #fff;
+.sort-trigger {
+  width: 10rem;
+}
+
+.delete-all-btn {
+  background-color: #fde8e8;
+  color: #c62828;
+  border: none;
+  box-shadow: none;
+}
+.delete-all-btn:hover {
+  background-color: #fad4d4;
+}
+.delete-all-btn:active {
+  background-color: #f5c2c2;
 }
 
 .list-section {
@@ -697,38 +686,16 @@ h1 {
   margin-top: 0.25rem;
 }
 
-@media (max-width: 980px) {
-  .status-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+@media (max-width: 1100px) {
+  .cards-section { flex-direction: column; gap: 10px; }
 }
 
 @media (max-width: 760px) {
-  .header-row {
-    flex-direction: column;
-  }
-
-  .status-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .filters-row {
-    align-items: stretch;
-  }
-
-  .filters-right {
-    width: 100%;
-    justify-content: flex-end;
-  }
-
-  .sorter {
-    justify-content: space-between;
-    width: auto;
-  }
-
-  .sorter select {
-    width: 100%;
-    max-width: 220px;
-  }
+  .header-row { flex-direction: column; }
+  .cards-group:first-child { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cards-group:last-child { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .filters-row { align-items: stretch; }
+  .filters-left { flex-direction: column; }
+  .filters-right { width: 100%; justify-content: flex-end; }
 }
 </style>

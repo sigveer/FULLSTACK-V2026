@@ -5,31 +5,42 @@ import { useAuthStore } from '@/stores/auth'
 
 const isInitialized = ref(false)
 const isLoading = ref(true)
+let initPromise: Promise<void> | null = null
 
 export function useInitAuth() {
   const auth = useAuthStore()
 
   async function init() {
-    const refreshToken = auth.getRefreshToken()
+    if (initPromise) return initPromise
 
-    if (!refreshToken) {
-      isLoading.value = false
-      isInitialized.value = true
-      return
-    }
+    initPromise = (async () => {
+      const refreshToken = auth.getRefreshToken()
 
-    try {
-      const { data } = await axios.post<AuthResponse>('/api/v1/auth/refresh', {
-        refreshToken,
-      })
-      auth.setAuth(data)
-    } catch {
-      auth.clearAuth()
-    } finally {
-      isLoading.value = false
-      isInitialized.value = true
-    }
+      if (!refreshToken) {
+        isLoading.value = false
+        isInitialized.value = true
+        return
+      }
+
+      try {
+        const { data } = await axios.post<AuthResponse>('/api/v1/auth/refresh', {
+          refreshToken,
+        })
+        auth.setAuth(data)
+      } catch {
+        auth.clearAuth()
+      } finally {
+        isLoading.value = false
+        isInitialized.value = true
+      }
+    })()
+
+    return initPromise
   }
 
-  return { init, isInitialized, isLoading }
+  return { init, initPromise, isInitialized, isLoading }
+}
+
+export function getInitPromise() {
+  return initPromise
 }

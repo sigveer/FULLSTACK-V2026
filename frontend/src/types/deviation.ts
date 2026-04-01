@@ -44,11 +44,4 @@ export interface UpdateDeviationStatusRequest {
   status: DeviationStatus
 }
 
-export interface OrganizationMember {
-  id: number
-  userId: number
-  userEmail: string
-  userFullName: string
-  organizationId: number
-  role: string
-}
+export type { OrganizationMember } from './member'

@@ -1,164 +1,220 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { ChevronDown, ChevronUp } from 'lucide-vue-next'
+import { computed, ref, toRef } from 'vue'
+import { MoreVertical, Shield, ShieldCheck, User, UserMinus, ArrowUpDown, Search, Plus, Mail } from 'lucide-vue-next'
+import { z } from 'zod/v4'
 import AppLayout from '@/components/layout/AppLayout.vue'
+import Button from '@/components/ui/button/Button.vue'
 import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableEmpty,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
+import Dialog from '@/components/ui/dialog/Dialog.vue'
+import DialogContent from '@/components/ui/dialog/DialogContent.vue'
+import DialogDescription from '@/components/ui/dialog/DialogDescription.vue'
+import DialogFooter from '@/components/ui/dialog/DialogFooter.vue'
+import DialogHeader from '@/components/ui/dialog/DialogHeader.vue'
+import DialogTitle from '@/components/ui/dialog/DialogTitle.vue'
+import AlertDialog from '@/components/ui/alert-dialog/AlertDialog.vue'
+import AlertDialogAction from '@/components/ui/alert-dialog/AlertDialogAction.vue'
+import AlertDialogCancel from '@/components/ui/alert-dialog/AlertDialogCancel.vue'
+import AlertDialogContent from '@/components/ui/alert-dialog/AlertDialogContent.vue'
+import AlertDialogDescription from '@/components/ui/alert-dialog/AlertDialogDescription.vue'
+import AlertDialogFooter from '@/components/ui/alert-dialog/AlertDialogFooter.vue'
+import AlertDialogHeader from '@/components/ui/alert-dialog/AlertDialogHeader.vue'
+import AlertDialogTitle from '@/components/ui/alert-dialog/AlertDialogTitle.vue'
+import Select from '@/components/ui/select/Select.vue'
+import SelectContent from '@/components/ui/select/SelectContent.vue'
+import SelectItem from '@/components/ui/select/SelectItem.vue'
+import SelectTrigger from '@/components/ui/select/SelectTrigger.vue'
+import SelectValue from '@/components/ui/select/SelectValue.vue'
 import { useAuthStore } from '@/stores/auth'
+import {
+  useMembersQuery,
+  useOrganizationQuery,
+  useUpdateMemberRoleMutation,
+  useRemoveMemberMutation,
+} from '@/composables/useMembers'
+import type { OrganizationMember } from '@/types/member'
 
-type Role = 'Admin' | 'Leder' | 'Ansatt'
-
-type Employee = {
-  id: number
-  name: string
-  email: string
-  phone: string
-  role: Role
-  joinedAt: string
-}
-
-type OrganizationEmployees = {
-  orgName: string
-  organizationId: string
-  category: string
-  phone: string
-  employees: Employee[]
-}
 const auth = useAuthStore()
 const search = ref('')
-const editingId = ref<number | null>(null)
-const expandedIds = ref<number[]>([])
 
-const organizations = ref<OrganizationEmployees[]>([
-  {
-    orgName: 'Demo Organization',
-    organizationId: '2',
-    category: 'Restaurant',
-    phone: '+47 000 00 000',
-    employees: [
-      {
-        id: 1,
-        name: 'Admin User',
-        email: 'admin@iksystem.local',
-        phone: '+47 000 00 000',
-        role: 'Admin',
-        joinedAt: '01. jan 2024',
-      },
-      {
-        id: 2,
-        name: 'Anna Solberg',
-        email: 'anna@demo.no',
-        phone: '+47 111 11 111',
-        role: 'Leder',
-        joinedAt: '14. feb 2024',
-      },
-      {
-        id: 3,
-        name: 'Per Hansen',
-        email: 'per@demo.no',
-        phone: '+47 222 22 222',
-        role: 'Leder',
-        joinedAt: '08. mar 2024',
-      },
-      {
-        id: 4,
-        name: 'Kari Nordmann',
-        email: 'kari@demo.no',
-        phone: '+47 333 33 333',
-        role: 'Ansatt',
-        joinedAt: '17. apr 2024',
-      },
-      {
-        id: 5,
-        name: 'Ola Larsen',
-        email: 'ola@demo.no',
-        phone: '+47 444 44 444',
-        role: 'Ansatt',
-        joinedAt: '29. mai 2024',
-      },
-    ],
-  },
-  {
-    orgName: 'Tom Virksomhet',
-    organizationId: '1',
-    category: 'Kafé',
-    phone: '+47 999 99 999',
-    employees: [],
-  },
-])
+const orgId = toRef(() => auth.organizationId)
+const { data: members, isLoading: membersLoading } = useMembersQuery()
+const { data: org } = useOrganizationQuery(orgId)
 
-const currentOrgId = computed(() => String(auth.organizationId ?? ''))
+const updateRoleMutation = useUpdateMemberRoleMutation()
+const removeMemberMutation = useRemoveMemberMutation()
 
-const emptyOrganization: OrganizationEmployees = {
-  orgName: 'Ukjent virksomhet',
-  organizationId: '',
-  category: '',
-  phone: '',
-  employees: [],
+const roleLabel: Record<string, string> = {
+  ADMIN: 'Admin',
+  MANAGER: 'Leder',
+  EMPLOYEE: 'Ansatt',
 }
 
-const currentOrganization = computed(() => {
-  return (
-    organizations.value.find((org) => org.organizationId === currentOrgId.value) ??
-    emptyOrganization
-  )
-})
+const roleOptions = ['ADMIN', 'MANAGER', 'EMPLOYEE'] as const
 
-const form = ref<Employee>({
-  id: 0,
-  name: '',
-  email: '',
-  phone: '',
-  role: 'Ansatt',
-  joinedAt: '',
-})
+type SortField = 'name' | 'email' | 'role'
+type SortDir = 'asc' | 'desc'
 
-const filteredEmployees = computed(() => {
-  const employees = currentOrganization.value.employees
+const sortField = ref<SortField>('name')
+const sortDir = ref<SortDir>('asc')
+
+function toggleSort(field: SortField) {
+  if (sortField.value === field) {
+    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortField.value = field
+    sortDir.value = 'asc'
+  }
+}
+
+const isSelf = (member: OrganizationMember) => member.userId === auth.user?.id
+const isAdmin = computed(() => auth.role === 'ADMIN')
+
+const sortedAndFilteredMembers = computed(() => {
+  if (!members.value) return []
+
   const q = search.value.toLowerCase().trim()
+  let list = members.value.slice()
 
-  if (!q) return employees
+  if (q) {
+    list = list.filter((m) =>
+      [m.userFullName, m.userEmail, roleLabel[m.role] ?? m.role].some((v) =>
+        v.toLowerCase().includes(q),
+      ),
+    )
+  }
 
-  return employees.filter((e) =>
-    [e.name, e.email, e.role].some((v) => v.toLowerCase().includes(q)),
-  )
+  const self = list.filter((m) => isSelf(m))
+  const others = list.filter((m) => !isSelf(m))
+
+  others.sort((a, b) => {
+    let cmp = 0
+    if (sortField.value === 'name') {
+      cmp = a.userFullName.localeCompare(b.userFullName, 'nb')
+    } else if (sortField.value === 'email') {
+      cmp = a.userEmail.localeCompare(b.userEmail, 'nb')
+    } else if (sortField.value === 'role') {
+      const order = { ADMIN: 0, MANAGER: 1, EMPLOYEE: 2 }
+      cmp = (order[a.role as keyof typeof order] ?? 3) - (order[b.role as keyof typeof order] ?? 3)
+    }
+    return sortDir.value === 'desc' ? -cmp : cmp
+  })
+
+  return [...self, ...others]
 })
 
 const stats = computed(() => {
-  const employees = currentOrganization.value.employees
-
+  const list = members.value ?? []
   return {
-    total: employees.length,
-    leaders: employees.filter((e) => e.role === 'Leder').length,
-    admins: employees.filter((e) => e.role === 'Admin').length,
+    total: list.length,
+    managers: list.filter((m) => m.role === 'MANAGER').length,
+    admins: list.filter((m) => m.role === 'ADMIN').length,
   }
 })
 
-const hasOverview = computed(() => currentOrganization.value.employees.length > 0)
-
-const badgeClass = (role: Role) =>
-  role === 'Admin' ? 'badge-admin' : role === 'Leder' ? 'badge-leader' : 'badge-employee'
-
-const isExpanded = (id: number) => expandedIds.value.includes(id)
-
-function toggleEmployee(id: number) {
-  expandedIds.value = isExpanded(id) ? [] : [id]
+function initials(name: string) {
+  return name
+    .split(' ')
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase()
 }
 
-function openEdit(employee: Employee) {
-  editingId.value = employee.id
-  form.value = { ...employee }
+function badgeClass(role: string) {
+  if (role === 'ADMIN') return 'badge-admin'
+  if (role === 'MANAGER') return 'badge-leader'
+  return 'badge-employee'
 }
 
-function saveEdit() {
-  const org = organizations.value.find((o) => o.organizationId === currentOrgId.value)
-  if (!org) return
+// ── Role editing ──
+const roleDialogOpen = ref(false)
+const editingMember = ref<OrganizationMember | null>(null)
+const selectedRole = ref('')
 
-  const employeeIndex = org.employees.findIndex((e) => e.id === editingId.value)
-  if (employeeIndex === -1) return
+function openRoleEdit(member: OrganizationMember) {
+  editingMember.value = member
+  selectedRole.value = member.role
+  roleDialogOpen.value = true
+}
 
-  org.employees[employeeIndex] = { ...form.value }
-  editingId.value = null
+function saveRole() {
+  const member = editingMember.value
+  const role = selectedRole.value
+  roleDialogOpen.value = false
+  editingMember.value = null
+  if (!member || role === member.role) return
+  updateRoleMutation.mutate({ userId: member.userId, payload: { role } })
+}
+
+function cancelRoleEdit() {
+  roleDialogOpen.value = false
+  editingMember.value = null
+}
+
+// ── Remove member ──
+const removeDialogOpen = ref(false)
+const removingMember = ref<OrganizationMember | null>(null)
+
+function openRemoveDialog(member: OrganizationMember) {
+  removingMember.value = member
+  removeDialogOpen.value = true
+}
+
+function confirmRemove() {
+  const member = removingMember.value
+  removeDialogOpen.value = false
+  removingMember.value = null
+  if (!member) return
+  removeMemberMutation.mutate(member.userId)
+}
+
+function cancelRemove() {
+  removeDialogOpen.value = false
+  removingMember.value = null
+}
+
+// ── Add employee dialog ──
+const addDialogOpen = ref(false)
+const inviteEmail = ref('')
+const inviteRole = ref('EMPLOYEE')
+const inviteError = ref('')
+
+const emailSchema = z.email({ message: 'Ugyldig e-postadresse' })
+
+function openAddDialog() {
+  inviteEmail.value = ''
+  inviteRole.value = 'EMPLOYEE'
+  inviteError.value = ''
+  addDialogOpen.value = true
+}
+
+function handleInvite() {
+  const result = emailSchema.safeParse(inviteEmail.value.trim())
+  if (!result.success) {
+    inviteError.value = result.error?.issues?.[0]?.message ?? 'Ugyldig e-postadresse'
+    return
+  }
+  inviteError.value = ''
+  // TODO: wire up to backend createUser endpoint
+  addDialogOpen.value = false
 }
 </script>
 
@@ -173,58 +229,139 @@ function saveEdit() {
     </header>
 
     <div class="page-content">
-      <template v-if="currentOrganization && hasOverview">
-        <section class="hero-card">
+      <section class="header-row">
+        <div>
           <h1>Ansatte</h1>
           <p>Administrer og se oversikt over alle ansatte.</p>
+        </div>
+        <Button @click="openAddDialog">
+          <Plus :size="16" />
+          Legg til ansatt
+        </Button>
+      </section>
 
-          <div class="org-card">
-            <div class="org-avatar">{{ currentOrganization.orgName.slice(0, 2).toUpperCase() }}</div>
-            <div>
-              <h2>{{ currentOrganization.orgName }}</h2>
-              <span class="org-meta">Org. nr: {{ currentOrganization.organizationId }} · {{ currentOrganization.category }} · {{ currentOrganization.phone }}</span>
-              <div class="stats-row">
-                <div><strong>{{ stats.total }}</strong><span>ANSATTE</span></div>
-                <div><strong>{{ stats.leaders }}</strong><span>LEDERE</span></div>
-                <div><strong>{{ stats.admins }}</strong><span>ADMIN</span></div>
-              </div>
+      <div v-if="membersLoading" class="loading-state">
+        Laster ansatte...
+      </div>
+
+      <template v-else-if="members && members.length > 0">
+        <section class="org-card">
+          <div class="org-left">
+            <div class="org-avatar">{{ (org?.name ?? '??').slice(0, 2).toUpperCase() }}</div>
+            <div class="org-details">
+              <h2>{{ org?.name ?? 'Laster...' }}</h2>
+              <span v-if="org?.orgNumber" class="org-meta">Org. nr: {{ org.orgNumber }}</span>
             </div>
           </div>
-
-          <input v-model="search" class="search-input" placeholder="Søk etter ansatt..." />
+          <div class="org-stats">
+            <div class="stat-item">
+              <span class="stat-label">ANSATTE</span>
+              <strong class="stat-value">{{ stats.total }}</strong>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">LEDERE</span>
+              <strong class="stat-value">{{ stats.managers }}</strong>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">ADMIN</span>
+              <strong class="stat-value">{{ stats.admins }}</strong>
+            </div>
+          </div>
         </section>
 
-        <section class="list-card">
-          <article v-for="employee in filteredEmployees" :key="employee.id" class="employee-row">
-            <div class="row-top">
-              <div>
-                <h3>{{ employee.name }}</h3>
-                <p>{{ employee.email }}</p>
-              </div>
+        <section class="table-section">
+          <div class="search-wrapper">
+            <Search :size="16" class="search-icon" />
+            <input v-model="search" class="search-input" placeholder="Søk etter ansatt..." />
+          </div>
 
-              <div class="row-actions">
-                <span class="badge" :class="badgeClass(employee.role)">{{ employee.role }}</span>
-                <button class="icon-btn" @click="toggleEmployee(employee.id)">
-                  <ChevronUp v-if="isExpanded(employee.id)" :size="18" />
-                  <ChevronDown v-else :size="18" />
-                </button>
-              </div>
-            </div>
+          <div class="table-card">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead class="th-name">
+                    <button class="sort-btn" @click="toggleSort('name')">
+                      Navn
+                      <ArrowUpDown :size="14" class="sort-icon" :class="{ 'sort-icon--active': sortField === 'name' }" />
+                    </button>
+                  </TableHead>
+                  <TableHead class="th-email">
+                    <button class="sort-btn" @click="toggleSort('email')">
+                      E-post
+                      <ArrowUpDown :size="14" class="sort-icon" :class="{ 'sort-icon--active': sortField === 'email' }" />
+                    </button>
+                  </TableHead>
+                  <TableHead class="th-role">
+                    <button class="sort-btn" @click="toggleSort('role')">
+                      Rolle
+                      <ArrowUpDown :size="14" class="sort-icon" :class="{ 'sort-icon--active': sortField === 'role' }" />
+                    </button>
+                  </TableHead>
+                  <TableHead class="th-actions" />
+                </TableRow>
+              </TableHeader>
 
-            <div v-if="isExpanded(employee.id)" class="details">
-              <div><span>E-POST</span><strong>{{ employee.email }}</strong></div>
-              <div><span>TELEFON</span><strong>{{ employee.phone }}</strong></div>
-              <div><span>ROLLE</span><strong>{{ employee.role }}</strong></div>
-              <div class="details-last">
-                <div><span>ANSATT SIDEN</span><strong>{{ employee.joinedAt }}</strong></div>
-                <button class="edit-btn" @click="openEdit(employee)">Rediger</button>
-              </div>
-            </div>
-          </article>
+              <TableBody>
+                <TableRow
+                  v-for="member in sortedAndFilteredMembers"
+                  :key="member.id"
+                  :class="isSelf(member) ? 'row-self' : ''"
+                >
+                  <TableCell>
+                    <div class="cell-user">
+                      <div class="user-avatar" :class="{ 'user-avatar--self': isSelf(member) }">
+                        {{ initials(member.userFullName) }}
+                      </div>
+                      <div>
+                        <span class="user-name">{{ member.userFullName }}</span>
+                        <span v-if="isSelf(member)" class="you-label">(deg)</span>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell class="cell-email">{{ member.userEmail }}</TableCell>
+                  <TableCell>
+                    <span class="badge" :class="badgeClass(member.role)">
+                      {{ roleLabel[member.role] ?? member.role }}
+                    </span>
+                  </TableCell>
+                  <TableCell class="cell-actions">
+                    <div v-if="!isSelf(member)" class="actions-wrapper">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger as-child>
+                          <button type="button" class="actions-trigger">
+                            <MoreVertical :size="18" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" :side-offset="4">
+                          <DropdownMenuLabel>Handlinger</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem @click="openRoleEdit(member)">
+                            <ShieldCheck :size="16" />
+                            Endre rolle
+                          </DropdownMenuItem>
+                          <template v-if="isAdmin">
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem class="menu-item--danger" @click="openRemoveDialog(member)">
+                              <UserMinus :size="16" />
+                              Fjern fra organisasjon
+                            </DropdownMenuItem>
+                          </template>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </TableCell>
+                </TableRow>
+
+                <TableEmpty v-if="sortedAndFilteredMembers.length === 0" :colspan="4">
+                  Ingen ansatte matcher søket.
+                </TableEmpty>
+              </TableBody>
+            </Table>
+          </div>
         </section>
       </template>
 
-      <section v-else class="landing-card">
+      <section v-else-if="!membersLoading" class="landing-card">
         <h1>Ansatte</h1>
         <p>Denne virksomheten har ingen ansatte registrert ennå.</p>
         <div class="landing-box">
@@ -234,80 +371,442 @@ function saveEdit() {
       </section>
     </div>
 
-    <div v-if="editingId" class="modal-backdrop" @click.self="editingId = null">
-      <div class="modal">
-        <h3>Rediger bruker</h3>
-        <input v-model="form.name" placeholder="Navn" />
-        <input v-model="form.email" placeholder="E-post" />
-        <input v-model="form.phone" placeholder="Telefon" />
-        <input v-model="form.joinedAt" placeholder="Ansatt siden" />
-        <select v-model="form.role">
-          <option value="Admin">Admin</option>
-          <option value="Leder">Leder</option>
-          <option value="Ansatt">Ansatt</option>
-        </select>
-        <div class="modal-actions">
-          <button class="cancel-btn" @click="editingId = null">Avbryt</button>
-          <button class="save-btn" @click="saveEdit">Lagre</button>
+    <!-- Edit role dialog -->
+    <AlertDialog :open="roleDialogOpen" @update:open="(v: boolean) => { roleDialogOpen = v }">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Endre rolle</AlertDialogTitle>
+          <AlertDialogDescription>
+            Velg ny rolle for {{ editingMember?.userFullName }}.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <div class="role-options">
+          <label
+            v-for="role in roleOptions"
+            :key="role"
+            class="role-option"
+            :class="{ 'role-option--selected': selectedRole === role }"
+          >
+            <input v-model="selectedRole" type="radio" :value="role" class="sr-only" />
+            <Shield v-if="role === 'ADMIN'" :size="18" />
+            <ShieldCheck v-else-if="role === 'MANAGER'" :size="18" />
+            <User v-else :size="18" />
+            <span>{{ roleLabel[role] }}</span>
+          </label>
         </div>
-      </div>
-    </div>
+
+        <AlertDialogFooter>
+          <AlertDialogCancel @click="cancelRoleEdit">Avbryt</AlertDialogCancel>
+          <AlertDialogAction @click="saveRole">Lagre</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    <!-- Remove member dialog -->
+    <AlertDialog :open="removeDialogOpen" @update:open="(v: boolean) => { removeDialogOpen = v }">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Fjern fra organisasjon?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {{ removingMember?.userFullName }} vil miste tilgangen til denne organisasjonen. Brukerkontoen blir ikke slettet.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel @click="cancelRemove">Avbryt</AlertDialogCancel>
+          <AlertDialogAction variant="destructive" @click="confirmRemove">Fjern</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    <!-- Add employee dialog -->
+    <Dialog :open="addDialogOpen" @update:open="(v: boolean) => { addDialogOpen = v }">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Legg til ansatt</DialogTitle>
+          <DialogDescription>
+            Inviter en ny ansatt til organisasjonen via e-post.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form class="invite-form" @submit.prevent="handleInvite">
+          <div class="form-field">
+            <label class="form-label" for="invite-email">E-post</label>
+            <div class="email-input-wrapper">
+              <Mail :size="16" class="email-input-icon" />
+              <input
+                id="invite-email"
+                v-model="inviteEmail"
+                type="email"
+                class="email-input"
+                placeholder="navn@eksempel.no"
+                autocomplete="off"
+              />
+            </div>
+            <span v-if="inviteError" class="form-error">{{ inviteError }}</span>
+          </div>
+
+          <div class="form-field">
+            <label class="form-label">Rolle</label>
+            <Select v-model="inviteRole">
+              <SelectTrigger>
+                <SelectValue placeholder="Velg rolle" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ADMIN">Admin</SelectItem>
+                <SelectItem value="MANAGER">Leder</SelectItem>
+                <SelectItem value="EMPLOYEE">Ansatt</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" type="button" @click="addDialogOpen = false">Avbryt</Button>
+            <Button type="submit">Send invitasjon</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   </AppLayout>
 </template>
 
 <style scoped>
-.page-header { display: flex; height: 4rem; align-items: center; }
+.page-header { display: flex; height: 4rem; flex-shrink: 0; align-items: center; }
 .page-header-inner { display: flex; align-items: center; gap: 0.5rem; padding: 0 1rem; }
 .header-separator { height: 1rem !important; width: 1px !important; margin-right: 0.5rem; }
 .page-title { font-weight: 500; color: hsl(var(--sidebar-primary, 245 43% 52%)); }
-.page-content { display: flex; flex-direction: column; gap: 1rem; padding: 0 1rem 1rem; background: #f6f4ef; min-height: calc(100vh - 4rem); }
-.hero-card, .list-card, .landing-card {
-  border: 1px solid #e4ddd3;
-  border-radius: 1rem;
-  background: #fff;
+.page-content { display: flex; flex: 1; flex-direction: column; gap: 1rem; padding: 0 1rem 1rem; }
+
+/* Header */
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
 }
-.hero-card, .list-card { border: 1px solid #e4ddd3; border-radius: 1rem; background: #fff; }
-.hero-card { padding: 1.5rem; }
-.hero-card h1 { margin: 0; font-size: 2.4rem; font-weight: 800; }
-.hero-card p { margin: 0.35rem 0 1.25rem; color: #6f6a63; }
-.org-card { display: flex; gap: 1rem; align-items: center; padding: 1.25rem; border: 1px solid #e4ddd3; border-radius: 1rem; margin-bottom: 1rem; }
-.org-avatar { width: 4.5rem; height: 4.5rem; border-radius: 1rem; display: flex; align-items: center; justify-content: center; background: #d9d0ff; color: #5a4fd6; font-size: 1.7rem; font-weight: 700; }
-.org-card h2 { margin: 0; font-size: 1.8rem; }
-.org-meta { color: #6f6a63; }
-.stats-row { display: flex; gap: 2rem; margin-top: 1rem; flex-wrap: wrap; }
-.stats-row div { display: flex; flex-direction: column; }
-.stats-row strong { font-size: 1.8rem; line-height: 1; }
-.stats-row span { font-size: 0.8rem; color: #6f6a63; letter-spacing: 0.05em; }
-.search-input, .modal input, .modal select { width: 100%; border: 1px solid #ddd5ca; border-radius: 0.85rem; padding: 0.85rem 1rem; font: inherit; background: #fff; }
-.list-card { overflow: hidden; }
-.employee-row + .employee-row { border-top: 1px solid #ece5db; }
-.row-top { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 1rem 1.25rem; }
-.row-top h3 { margin: 0; font-size: 1.1rem; }
-.row-top p { margin: 0.15rem 0 0; color: #6f6a63; }
-.row-actions { display: flex; align-items: center; gap: 0.75rem; }
-.badge { padding: 0.45rem 0.9rem; border-radius: 999px; font-size: 0.9rem; font-weight: 600; }
+
+h1 { margin: 0; font-size: 2.4rem; letter-spacing: -0.02em; }
+.header-row p { margin-top: 6px; color: var(--text-secondary); font-size: 1.08rem; }
+
+.loading-state { padding: 3rem; text-align: center; color: hsl(var(--muted-foreground, 24 5% 46%)); }
+
+/* Org card */
+.org-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid hsl(var(--border, 35 18% 88%));
+  border-radius: 0.75rem;
+  background: hsl(var(--card, 40 25% 98%));
+}
+
+.org-left {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  min-width: 0;
+}
+
+.org-avatar {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #d9d0ff;
+  color: #5a4fd6;
+  font-size: 1.1rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.org-details { min-width: 0; }
+.org-details h2 { margin: 0; font-size: 1.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.org-meta { color: hsl(var(--muted-foreground, 24 5% 46%)); font-size: 0.85rem; }
+
+.org-stats {
+  display: flex;
+  gap: 1.5rem;
+  flex-shrink: 0;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+}
+
+.stat-label {
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: hsl(var(--muted-foreground, 24 5% 46%));
+}
+
+.stat-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1;
+  color: hsl(var(--foreground, 24 10% 15%));
+}
+
+/* Search */
+.search-wrapper {
+  position: relative;
+  width: 16rem;
+}
+
+.search-icon {
+  position: absolute;
+  left: 0.65rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: hsl(var(--muted-foreground, 24 5% 46%));
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  border: 1px solid hsl(var(--border, 35 18% 88%));
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem 0.5rem 2.1rem;
+  font: inherit;
+  font-size: 0.85rem;
+  background: hsl(var(--card, 40 25% 98%));
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: hsl(var(--ring, 245 43% 52%));
+  box-shadow: 0 0 0 2px hsl(var(--ring, 245 43% 52%) / 0.15);
+}
+
+/* Table */
+.table-section { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.table-card {
+  border: 1px solid hsl(var(--border, 35 18% 88%));
+  border-radius: 0.75rem;
+  background: hsl(var(--card, 40 25% 98%));
+}
+
+/* Sort buttons — same hover as three-dot trigger */
+.sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: none;
+  border: none;
+  font: inherit;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground, 24 5% 46%));
+  cursor: pointer;
+  padding: 0.25rem 0.4rem;
+  border-radius: var(--radius-md, 0.375rem);
+  margin: -0.25rem -0.4rem;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.sort-btn:hover {
+  background: hsl(var(--accent, 250 40% 95%));
+  color: hsl(var(--foreground, 24 10% 15%));
+}
+
+.sort-icon { opacity: 0.4; transition: opacity 150ms; }
+.sort-icon--active { opacity: 1; }
+
+/* Self row */
+.row-self {
+  background-color: hsl(var(--muted, 40 18% 93%) / 0.6) !important;
+}
+
+.row-self:hover {
+  background-color: hsl(var(--muted, 40 18% 93%) / 0.75) !important;
+}
+
+/* User avatar in table */
+.cell-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.user-avatar {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: hsl(var(--muted, 40 18% 93%));
+  color: hsl(var(--muted-foreground, 24 5% 46%));
+  font-size: 0.75rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.user-avatar--self {
+  background: #d9d0ff;
+  color: #5a4fd6;
+}
+
+.user-name { font-weight: 500; }
+.you-label { color: hsl(var(--muted-foreground, 24 5% 46%)); font-size: 0.8rem; margin-left: 0.25rem; }
+
+.cell-email { color: hsl(var(--muted-foreground, 24 5% 46%)); }
+
+/* Badges */
+.badge { padding: 0.3rem 0.7rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; }
 .badge-admin { background: #eee9ff; color: #5a4fd6; }
 .badge-leader { background: #f7ecd2; color: #9a7322; }
 .badge-employee { background: #e5efd9; color: #5d7f31; }
-.icon-btn { border: 0; background: transparent; color: #6f6a63; cursor: pointer; display: flex; }
-.details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; padding: 0 1.25rem 1.25rem; border-top: 1px solid #ece5db; }
-.details div { display: flex; flex-direction: column; gap: 0.35rem; padding-top: 1rem; }
-.details span { font-size: 0.8rem; color: #6f6a63; letter-spacing: 0.05em; }
-.details strong { font-size: 1rem; }
-.details-last { display: flex !important; flex-direction: row !important; justify-content: space-between; align-items: end; gap: 1rem; }
-.edit-btn, .save-btn, .cancel-btn { border: 0; border-radius: 0.8rem; padding: 0.75rem 1rem; font-weight: 600; cursor: pointer; }
-.edit-btn { background: #eee9ff; color: #5a4fd6; }
-.landing-card { padding: 1.5rem; }
+
+/* Actions cell */
+.cell-actions {
+  width: 3rem;
+  text-align: right;
+}
+
+.actions-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.actions-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-md, 0.375rem);
+  border: none;
+  background: none;
+  color: hsl(var(--muted-foreground, 24 5% 46%));
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.actions-trigger:hover {
+  background: hsl(var(--accent, 250 40% 95%));
+  color: hsl(var(--foreground, 24 10% 15%));
+}
+
+.menu-item--danger { color: #dc2626; }
+
+/* Responsive columns */
+.th-name { min-width: 10rem; }
+.th-email { min-width: 10rem; }
+.th-role { min-width: 6rem; }
+.th-actions { width: 3rem; }
+
+/* Landing / empty */
+.landing-card {
+  padding: 1.5rem;
+  border: 1px solid hsl(var(--border, 35 18% 88%));
+  border-radius: 1rem;
+  background: hsl(var(--card, 40 25% 98%));
+}
 .landing-card h1 { margin: 0; font-size: 2.4rem; font-weight: 800; }
-.landing-card p { margin: 0.35rem 0 1.25rem; color: #6f6a63; }
-.landing-box { border: 1px dashed #d8cfff; background: #f6f1ff; color: #5a4fd6; border-radius: 1rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.35rem; }
+.landing-card p { margin: 0.35rem 0 1.25rem; color: hsl(var(--muted-foreground, 24 5% 46%)); }
+.landing-box {
+  border: 1px dashed #d8cfff;
+  background: #f6f1ff;
+  color: #5a4fd6;
+  border-radius: 1rem;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
 .landing-box h3 { margin: 0; font-size: 1.1rem; }
-.landing-box span { color: #6f6a63; }
-.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; padding: 1rem; }
-.modal { width: 100%; max-width: 26rem; background: white; border-radius: 1rem; padding: 1rem; display: grid; gap: 0.75rem; }
-.modal h3 { margin: 0 0 0.25rem; }
-.modal-actions { display: flex; justify-content: end; gap: 0.75rem; }
-.cancel-btn { background: #efebe4; color: #3b3732; }
-.save-btn { background: #5a4fd6; color: white; }
-@media (max-width: 700px) { .details { grid-template-columns: 1fr; } .details-last { flex-direction: column !important; align-items: flex-start; } .row-top { flex-direction: column; align-items: flex-start; } }
+.landing-box span { color: hsl(var(--muted-foreground, 24 5% 46%)); }
+
+/* Role edit dialog */
+.role-options { display: flex; flex-direction: column; gap: 0.5rem; }
+.role-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid hsl(var(--border, 35 18% 88%));
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.role-option:hover { background: hsl(var(--muted, 40 18% 93%) / 0.5); }
+.role-option--selected { border-color: #5a4fd6; background: #f3f0ff; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+
+/* Invite form */
+.invite-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.form-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: hsl(var(--foreground, 24 10% 15%));
+}
+
+.email-input-wrapper {
+  position: relative;
+}
+
+.email-input-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: hsl(var(--muted-foreground, 24 5% 46%));
+  pointer-events: none;
+}
+
+.email-input {
+  display: flex;
+  height: 2.5rem;
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--input, 35 15% 85%));
+  background-color: hsl(var(--card, 40 25% 98%));
+  padding: 0.5rem 0.75rem 0.5rem 2.25rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: inherit;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  outline: none;
+  transition: all 150ms ease;
+  font-family: inherit;
+}
+
+.email-input::placeholder {
+  color: hsl(var(--muted-foreground, 24 5% 46%));
+}
+
+.email-input:focus {
+  box-shadow: 0 0 0 2px hsl(var(--ring, 245 43% 52%) / 0.2);
+  border-color: hsl(var(--primary, 245 43% 52%) / 0.5);
+}
+
+.form-error {
+  font-size: 0.8rem;
+  color: #dc2626;
+}
+
+@media (max-width: 700px) {
+  .th-email, .cell-email { display: none; }
+  .org-card { flex-direction: column; align-items: flex-start; }
+  .org-stats { align-self: flex-start; }
+}
 </style>

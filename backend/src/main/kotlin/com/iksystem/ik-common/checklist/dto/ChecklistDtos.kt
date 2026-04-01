@@ -59,6 +59,7 @@ data class ChecklistItemResponse(
     val title: String,
     val description: String?,
     val completed: Boolean,
+    val completedAt: java.time.Instant?,
 )
 
 enum class ChecklistStatus {

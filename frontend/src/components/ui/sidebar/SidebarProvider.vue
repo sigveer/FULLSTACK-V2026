@@ -10,14 +10,19 @@ import {
   SIDEBAR_WIDTH_ICON,
 } from "./utils"
 
+function readSidebarCookie(): boolean {
+  if (typeof document === "undefined") return true
+  const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${SIDEBAR_COOKIE_NAME}=([^;]*)`))
+  if (!match) return true
+  return match[1] !== "false"
+}
+
 const props = withDefaults(defineProps<{
   defaultOpen?: boolean
   open?: boolean
   class?: string
 }>(), {
-  defaultOpen: typeof document !== "undefined"
-    ? !document.cookie.includes(`${SIDEBAR_COOKIE_NAME}=false`)
-    : true,
+  defaultOpen: true,
   open: undefined,
 })
 
@@ -27,7 +32,7 @@ const emits = defineEmits<{
 
 const isMobile = useMediaQuery("(max-width: 768px)")
 const openMobile = ref(false)
-const open = ref(props.open ?? props.defaultOpen ?? true)
+const open = ref(props.open ?? readSidebarCookie())
 
 watch(() => props.open, (v) => {
   if (v !== undefined) open.value = v

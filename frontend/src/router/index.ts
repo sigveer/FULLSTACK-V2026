@@ -8,6 +8,7 @@ import DeviationsView from '@/views/DeviationsView.vue'
 import TrainingView from '@/views/TrainingView.vue'
 import AllowanceView from '@/views/AllowanceView.vue'
 import { useAuthStore } from '@/stores/auth'
+import { getInitPromise } from '@/composables/useInitAuth'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -52,6 +53,11 @@ const router = createRouter({
       component: ChecklistView,
     },
     {
+      path: '/sjekklister/:id',
+      name: 'sjekkliste-detail',
+      component: () => import('@/views/ChecklistDetailView.vue'),
+    },
+    {
       path: '/temperatur',
       name: 'temperatur',
       component: TemperatureView,
@@ -78,6 +84,11 @@ const router = createRouter({
       component: DeviationsView,
     },
     {
+      path: '/avvik/:id',
+      name: 'avvik-detail',
+      component: () => import('@/views/DeviationDetailView.vue'),
+    },
+    {
       path: '/ansatte',
       name: 'ansatte',
       component: () => import('@/views/EmployeesView.vue'),
@@ -90,25 +101,23 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to, _from, next) => {
+router.beforeEach(async (to) => {
+  // Wait for auth initialization (token refresh) to complete before checking
+  const promise = getInitPromise()
+  if (promise) await promise
+
   const auth = useAuthStore()
 
   // Allow public routes
-  if (to.meta.public) {
-    return next()
-  }
+  if (to.meta.public) return true
 
   // Not authenticated → redirect to login
-  if (!auth.isAuthenticated) {
-    return next('/login')
-  }
+  if (!auth.isAuthenticated) return '/login'
 
   // Role-based route guard
-  if (to.meta.role && auth.role !== to.meta.role) {
-    return next('/unauthorized')
-  }
+  if (to.meta.role && auth.role !== to.meta.role) return '/unauthorized'
 
-  next()
+  return true
 })
 
 export default router

@@ -14,13 +14,62 @@ const props = withDefaults(defineProps<{
 
 import type { Ref } from "vue"
 
-const { isOpen, close } = inject("dropdown-menu") as { isOpen: Ref<boolean>; close: () => void }
+const { isOpen, triggerRef, close } = inject("dropdown-menu") as {
+  isOpen: Ref<boolean>
+  triggerRef: Ref<HTMLElement | null>
+  close: () => void
+}
 const contentRef = ref<HTMLElement | null>(null)
+const posStyle = ref<Record<string, string>>({})
+
+function updatePosition() {
+  const trigger = triggerRef.value
+  if (!trigger) return
+  const rect = trigger.getBoundingClientRect()
+  const s: Record<string, string> = { position: "fixed", zIndex: "999" }
+  const isVertical = props.side === "bottom" || props.side === "top"
+
+  // Side axis: which edge of the trigger does the dropdown attach to
+  if (props.side === "bottom") {
+    s.top = `${rect.bottom + props.sideOffset}px`
+  } else if (props.side === "top") {
+    s.bottom = `${window.innerHeight - rect.top + props.sideOffset}px`
+  } else if (props.side === "right") {
+    s.left = `${rect.right + props.sideOffset}px`
+  } else if (props.side === "left") {
+    s.right = `${window.innerWidth - rect.left + props.sideOffset}px`
+  }
+
+  // Align axis: perpendicular to side
+  if (isVertical) {
+    // Horizontal alignment
+    if (props.align === "start") {
+      s.left = `${rect.left}px`
+    } else if (props.align === "center") {
+      s.left = `${rect.left + rect.width / 2}px`
+      s.transform = "translateX(-50%)"
+    } else if (props.align === "end") {
+      s.right = `${window.innerWidth - rect.right}px`
+    }
+  } else {
+    // Vertical alignment for side left/right
+    if (props.align === "start") {
+      s.top = `${rect.top}px`
+    } else if (props.align === "center") {
+      s.top = `${rect.top + rect.height / 2}px`
+      s.transform = "translateY(-50%)"
+    } else if (props.align === "end") {
+      s.bottom = `${window.innerHeight - rect.bottom}px`
+    }
+  }
+
+  posStyle.value = s
+}
 
 function onClickOutside(e: MouseEvent) {
   if (!contentRef.value) return
-  const root = contentRef.value.closest(".dropdown-menu-root")
-  if (root && root.contains(e.target as Node)) return
+  const trigger = triggerRef.value
+  if (trigger && trigger.contains(e.target as Node)) return
   if (!contentRef.value.contains(e.target as Node)) {
     close()
   }
@@ -32,6 +81,7 @@ function onKeydown(e: KeyboardEvent) {
 
 watch(isOpen, async (open: boolean) => {
   if (open) {
+    updatePosition()
     await nextTick()
     document.addEventListener("mousedown", onClickOutside)
     document.addEventListener("keydown", onKeydown)
@@ -48,23 +98,23 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <Transition name="dropdown">
-    <div
-      v-if="isOpen"
-      ref="contentRef"
-      :class="['dropdown-content', `dropdown-content--${align}`, `dropdown-content--${side}`, props.class]"
-      :style="{ '--side-offset': `${sideOffset}px` }"
-      role="menu"
-    >
-      <slot />
-    </div>
-  </Transition>
+  <Teleport to="body">
+    <Transition name="dropdown">
+      <div
+        v-if="isOpen"
+        ref="contentRef"
+        :class="['dropdown-content', props.class]"
+        :style="posStyle"
+        role="menu"
+      >
+        <slot />
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <style scoped>
 .dropdown-content {
-  position: absolute;
-  z-index: 50;
   min-width: 14rem;
   overflow: hidden;
   border-radius: 0.5rem;
@@ -74,71 +124,6 @@ onBeforeUnmount(() => {
   padding: 0.25rem;
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   outline: none;
-}
-
-/* Side positioning */
-.dropdown-content--bottom {
-  top: calc(100% + var(--side-offset));
-}
-
-.dropdown-content--top {
-  bottom: calc(100% + var(--side-offset));
-}
-
-.dropdown-content--right {
-  left: calc(100% + var(--side-offset));
-  top: 0;
-}
-
-.dropdown-content--left {
-  right: calc(100% + var(--side-offset));
-  top: 0;
-}
-
-/* Align */
-.dropdown-content--start {
-  left: 0;
-}
-
-.dropdown-content--center {
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.dropdown-content--end {
-  right: 0;
-}
-
-/* For side left/right, align applies to vertical axis */
-.dropdown-content--right.dropdown-content--start,
-.dropdown-content--left.dropdown-content--start {
-  top: 0;
-  left: unset;
-  right: unset;
-}
-
-.dropdown-content--right.dropdown-content--start {
-  left: calc(100% + var(--side-offset));
-}
-
-.dropdown-content--left.dropdown-content--start {
-  right: calc(100% + var(--side-offset));
-}
-
-.dropdown-content--right.dropdown-content--end,
-.dropdown-content--left.dropdown-content--end {
-  top: unset;
-  bottom: 0;
-}
-
-.dropdown-content--right.dropdown-content--end {
-  left: calc(100% + var(--side-offset));
-  right: unset;
-}
-
-.dropdown-content--left.dropdown-content--end {
-  right: calc(100% + var(--side-offset));
-  left: unset;
 }
 
 /* Animation */

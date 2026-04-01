@@ -22,12 +22,15 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { useLogout, useSwitchOrg } from '@/composables/useAuth'
+import { useLogout, useMemberships, useSwitchOrg } from '@/composables/useAuth'
 
+const router = useRouter()
 const auth = useAuthStore()
 const { mutate: logout } = useLogout()
 const { mutate: switchOrg } = useSwitchOrg()
+useMemberships()
 const { isMobile } = useSidebar()
 
 const userName = computed(() => auth.user?.fullName ?? 'Bruker')
@@ -100,7 +103,7 @@ function handleSwitchOrg(organizationId: number) {
           </template>
 
           <DropdownMenuSeparator />
-          <DropdownMenuItem>
+          <DropdownMenuItem @click="router.push('/innstillinger')">
             <Settings />
             Innstillinger
           </DropdownMenuItem>

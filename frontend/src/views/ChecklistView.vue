@@ -2,6 +2,7 @@
 import axios from 'axios'
 import { ClipboardCheck } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import Button from '@/components/ui/button/Button.vue'
@@ -9,39 +10,31 @@ import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import ChecklistCard from '@/components/checklists/ChecklistCard.vue'
 import ChecklistFormDialog from '@/components/checklists/ChecklistFormDialog.vue'
-import ChecklistItemFormDialog from '@/components/checklists/ChecklistItemFormDialog.vue'
+
 import {
   useChecklistsQuery,
-  useCreateChecklistItemMutation,
   useCreateChecklistMutation,
-  useDeleteChecklistItemMutation,
   useDeleteChecklistMutation,
   useSetChecklistCompletionMutation,
-  useUpdateChecklistItemMutation,
   useUpdateChecklistMutation,
 } from '@/composables/useChecklists'
 import { useAuthStore } from '@/stores/auth'
 import type {
   Checklist,
   ChecklistFrequency,
-  ChecklistItem,
-  CreateChecklistItemRequest,
   CreateChecklistRequest,
-  UpdateChecklistItemRequest,
   UpdateChecklistRequest,
 } from '@/types/checklist'
 
 type FrequencyFilter = 'ALL' | ChecklistFrequency
 
+const router = useRouter()
 const auth = useAuthStore()
 
 const checklistQuery = useChecklistsQuery()
 const createChecklist = useCreateChecklistMutation()
 const updateChecklist = useUpdateChecklistMutation()
 const deleteChecklist = useDeleteChecklistMutation()
-const createItem = useCreateChecklistItemMutation()
-const updateItem = useUpdateChecklistItemMutation()
-const deleteItem = useDeleteChecklistItemMutation()
 const setChecklistCompletion = useSetChecklistCompletionMutation()
 
 const activeFilter = ref<FrequencyFilter>('ALL')
@@ -49,11 +42,6 @@ const activeFilter = ref<FrequencyFilter>('ALL')
 const checklistDialogOpen = ref(false)
 const checklistDialogMode = ref<'create' | 'edit'>('create')
 const activeChecklist = ref<Checklist | null>(null)
-
-const itemDialogOpen = ref(false)
-const itemDialogMode = ref<'create' | 'edit'>('create')
-const activeItemChecklist = ref<Checklist | null>(null)
-const activeItem = ref<ChecklistItem | null>(null)
 
 const canManage = computed(() => auth.role === 'ADMIN' || auth.role === 'MANAGER')
 const canComplete = computed(() => !!auth.role)
@@ -166,72 +154,8 @@ async function handleDeleteChecklist(checklistId: number) {
   }
 }
 
-function openCreateItemDialog(checklist: Checklist) {
-  itemDialogMode.value = 'create'
-  activeItemChecklist.value = checklist
-  activeItem.value = null
-  itemDialogOpen.value = true
-}
-
-function openEditItemDialog(payload: { checklist: Checklist; item: ChecklistItem }) {
-  itemDialogMode.value = 'edit'
-  activeItemChecklist.value = payload.checklist
-  activeItem.value = payload.item
-  itemDialogOpen.value = true
-}
-
-async function handleCreateItem(payload: { checklistId: number; data: CreateChecklistItemRequest }) {
-  try {
-    await createItem.mutateAsync({
-      checklistId: payload.checklistId,
-      payload: payload.data,
-    })
-    itemDialogOpen.value = false
-    toast.success('Oppgave lagt til')
-  } catch (error) {
-    handleMutationError(error, 'Kunne ikke legge til oppgave')
-  }
-}
-
-async function handleUpdateItem(payload: {
-  checklistId: number
-  itemId: number
-  data: UpdateChecklistItemRequest
-}) {
-  try {
-    await updateItem.mutateAsync({
-      checklistId: payload.checklistId,
-      itemId: payload.itemId,
-      payload: payload.data,
-    })
-    itemDialogOpen.value = false
-    toast.success('Oppgave oppdatert')
-  } catch (error) {
-    handleMutationError(error, 'Kunne ikke oppdatere oppgave')
-  }
-}
-
-async function handleDeleteItem(payload: { checklistId: number; itemId: number }) {
-  try {
-    await deleteItem.mutateAsync(payload)
-    toast.success('Oppgave slettet')
-  } catch (error) {
-    handleMutationError(error, 'Kunne ikke slette oppgave')
-  }
-}
-
-async function handleToggleItemCompleted(payload: { checklistId: number; itemId: number; completed: boolean }) {
-  try {
-    await updateItem.mutateAsync({
-      checklistId: payload.checklistId,
-      itemId: payload.itemId,
-      payload: {
-        completed: payload.completed,
-      },
-    })
-  } catch (error) {
-    handleMutationError(error, 'Kunne ikke oppdatere oppgavestatus')
-  }
+function handleOpenChecklist(checklist: Checklist) {
+  router.push(`/sjekklister/${checklist.id}`)
 }
 
 async function handleToggleChecklistCompleted(payload: { checklistId: number; completed: boolean }) {
@@ -292,9 +216,18 @@ function handleMutationError(error: unknown, fallbackMessage: string) {
 
       <section class="list-section">
         <p v-if="checklistQuery.isLoading.value" class="state-line">Laster sjekklister...</p>
-        <p v-else-if="checklistQuery.isError.value" class="state-line state-line--danger">
-          Kunne ikke hente sjekklister.
-        </p>
+        <div v-else-if="checklistQuery.isError.value" class="empty-state">
+          <div class="empty-state-bg" />
+          <div class="empty-state-inner">
+            <div class="empty-state-icon">
+              <ClipboardCheck :stroke-width="1.5" />
+            </div>
+            <div class="empty-state-text">
+              <h3>Kunne ikke hente sjekklister</h3>
+              <p>Noe gikk galt under lasting av sjekklister. Prøv igjen senere.</p>
+            </div>
+          </div>
+        </div>
 
         <div v-else-if="groupedChecklists.length === 0" class="empty-state">
           <div class="empty-state-bg" />
@@ -325,12 +258,9 @@ function handleMutationError(error: unknown, fallbackMessage: string) {
                 :checklist="checklist"
                 :can-manage="canManage"
                 :can-complete="canComplete"
+                @open="handleOpenChecklist"
                 @edit-checklist="openEditChecklistDialog"
                 @delete-checklist="handleDeleteChecklist"
-                @new-item="openCreateItemDialog"
-                @edit-item="openEditItemDialog"
-                @delete-item="handleDeleteItem"
-                @toggle-item-completed="handleToggleItemCompleted"
                 @toggle-checklist-completed="handleToggleChecklistCompleted"
               />
             </div>
@@ -348,15 +278,6 @@ function handleMutationError(error: unknown, fallbackMessage: string) {
       @update="handleUpdateChecklist"
     />
 
-    <ChecklistItemFormDialog
-      v-model:open="itemDialogOpen"
-      :mode="itemDialogMode"
-      :checklist="activeItemChecklist"
-      :initial-item="activeItem"
-      :submitting="createItem.isPending.value || updateItem.isPending.value"
-      @create="handleCreateItem"
-      @update="handleUpdateItem"
-    />
   </AppLayout>
 </template>
 

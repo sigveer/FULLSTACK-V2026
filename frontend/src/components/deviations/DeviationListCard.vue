@@ -1,15 +1,37 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import { MoreVertical, CircleDot, Clock, CheckCircle2, Trash2, Pencil } from 'lucide-vue-next'
 import StatusPill from '@/components/ui/StatusPill.vue'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
+import AlertDialog from '@/components/ui/alert-dialog/AlertDialog.vue'
+import AlertDialogAction from '@/components/ui/alert-dialog/AlertDialogAction.vue'
+import AlertDialogCancel from '@/components/ui/alert-dialog/AlertDialogCancel.vue'
+import AlertDialogContent from '@/components/ui/alert-dialog/AlertDialogContent.vue'
+import AlertDialogDescription from '@/components/ui/alert-dialog/AlertDialogDescription.vue'
+import AlertDialogFooter from '@/components/ui/alert-dialog/AlertDialogFooter.vue'
+import AlertDialogHeader from '@/components/ui/alert-dialog/AlertDialogHeader.vue'
+import AlertDialogTitle from '@/components/ui/alert-dialog/AlertDialogTitle.vue'
 import type { Deviation, DeviationModule, DeviationSeverity, DeviationStatus } from '@/types/deviation'
 
 const props = defineProps<{
   deviation: Deviation
+  canManage: boolean
 }>()
 
 const emits = defineEmits<{
   (e: 'open', deviation: Deviation): void
+  (e: 'edit', deviation: Deviation): void
+  (e: 'update-status', payload: { id: number; status: DeviationStatus }): void
+  (e: 'delete', id: number): void
 }>()
+
+const deleteDialogOpen = ref(false)
 
 const moduleLabel: Record<DeviationModule, string> = {
   IK_MAT: 'IK-Mat',
@@ -51,13 +73,15 @@ const severityRailClass: Record<DeviationSeverity, string> = {
   CRITICAL: 'deviation-card--critical',
 }
 
+function normalizedStatus(status: DeviationStatus): DeviationStatus {
+  return status === 'RESOLVED' ? 'CLOSED' : status
+}
+
 const relativeTime = computed(() => toRelativeTime(props.deviation.reportedAt))
 
 function toRelativeTime(value: string): string {
   const timestamp = new Date(value).getTime()
-  if (Number.isNaN(timestamp)) {
-    return '-'
-  }
+  if (Number.isNaN(timestamp)) return '-'
 
   const diffMs = Date.now() - timestamp
   const minute = 60 * 1000
@@ -80,13 +104,13 @@ function toRelativeTime(value: string): string {
 </script>
 
 <template>
-  <button
-    type="button"
-    :class="`deviation-card ${severityRailClass[deviation.severity]}`"
-    @click="emits('open', deviation)"
-  >
-    <div class="deviation-card-header">
-      <div class="header-main">
+  <div :class="['deviation-card', severityRailClass[deviation.severity]]">
+    <div class="card-top">
+      <button
+        type="button"
+        class="card-body"
+        @click="emits('open', deviation)"
+      >
         <div class="tag-row">
           <StatusPill :label="severityLabel[deviation.severity]" :tone="severityTone[deviation.severity]" />
           <StatusPill :label="moduleLabel[deviation.module]" tone="brand" />
@@ -94,19 +118,74 @@ function toRelativeTime(value: string): string {
         </div>
 
         <h3>{{ deviation.title }}</h3>
-        <p class="description">{{ deviation.description }}</p>
 
-        <div class="meta-line">
-          <span>Rapportert av: {{ deviation.reportedByUserName }}</span>
-          <span>Tildelt: {{ deviation.assignedToUserName ?? 'Ikke tildelt' }}</span>
+        <div class="detail-row">
+          <p class="description">{{ deviation.description }}</p>
+          <span class="time-label">{{ relativeTime }}</span>
         </div>
-      </div>
+      </button>
 
-      <div class="header-side">
-        <span class="time-label">{{ relativeTime }}</span>
+      <div v-if="canManage" class="card-actions" @click.stop>
+        <DropdownMenu>
+          <DropdownMenuTrigger as-child>
+            <button type="button" class="actions-trigger">
+              <MoreVertical :size="18" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" :side-offset="4">
+            <DropdownMenuItem @click="emits('edit', deviation)">
+              <Pencil :size="16" />
+              Rediger avvik
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              :class="normalizedStatus(deviation.status) === 'OPEN' ? 'menu-item--active' : ''"
+              @click="emits('update-status', { id: deviation.id, status: 'OPEN' })"
+            >
+              <CircleDot :size="16" class="menu-icon--red" />
+              Åpen
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              :class="normalizedStatus(deviation.status) === 'IN_PROGRESS' ? 'menu-item--active' : ''"
+              @click="emits('update-status', { id: deviation.id, status: 'IN_PROGRESS' })"
+            >
+              <Clock :size="16" class="menu-icon--amber" />
+              Under behandling
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              :class="normalizedStatus(deviation.status) === 'CLOSED' ? 'menu-item--active' : ''"
+              @click="emits('update-status', { id: deviation.id, status: 'CLOSED' })"
+            >
+              <CheckCircle2 :size="16" class="menu-icon--green" />
+              Løst
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem class="menu-item--danger" @click="deleteDialogOpen = true">
+              <Trash2 :size="16" />
+              Slett avvik
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <AlertDialog v-model:open="deleteDialogOpen">
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Slette avvik?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Avviket blir permanent slettet og kan ikke gjenopprettes.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Avbryt</AlertDialogCancel>
+              <AlertDialogAction variant="destructive" @click="emits('delete', deviation.id)">
+                Slett
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
-  </button>
+  </div>
 </template>
 
 <style scoped>
@@ -116,23 +195,13 @@ function toRelativeTime(value: string): string {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--card-bg);
-  padding: 14px 14px 12px 18px;
-  text-align: left;
-  cursor: pointer;
-  transition: box-shadow 150ms ease, transform 120ms ease;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow 150ms ease;
 }
 
 .deviation-card:hover {
   box-shadow: 0 6px 14px rgb(0 0 0 / 0.08);
-}
-
-.deviation-card:active {
-  transform: scale(0.998);
-}
-
-.deviation-card:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.3);
 }
 
 .deviation-card::before {
@@ -146,106 +215,114 @@ function toRelativeTime(value: string): string {
   background: transparent;
 }
 
-.deviation-card--critical {
-  border-color: hsl(var(--destructive) / 0.25);
-}
+.deviation-card--critical { border-color: hsl(var(--destructive) / 0.25); }
+.deviation-card--critical::before { background: var(--red); }
+.deviation-card--medium { border-color: #ead8a6; }
+.deviation-card--medium::before { background: #d0a11f; }
+.deviation-card--high { border-color: #e7bf99; }
+.deviation-card--high::before { background: #c9751a; }
+.deviation-card--low { border-color: #b9d9be; }
+.deviation-card--low::before { background: var(--green); }
 
-.deviation-card--critical::before {
-  background: var(--red);
-}
-
-.deviation-card--medium {
-  border-color: #ead8a6;
-}
-
-.deviation-card--medium::before {
-  background: #d0a11f;
-}
-
-.deviation-card--high {
-  border-color: #e7bf99;
-}
-
-.deviation-card--high::before {
-  background: #c9751a;
-}
-
-.deviation-card--low {
-  border-color: #b9d9be;
-}
-
-.deviation-card--low::before {
-  background: var(--green);
-}
-
-.deviation-card-header {
+.card-top {
   display: flex;
-  justify-content: space-between;
   align-items: flex-start;
-  gap: 12px;
 }
 
-.header-main {
-  min-width: 0;
+.card-body {
   flex: 1;
+  min-width: 0;
+  padding: 14px 16px 14px 22px;
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: none;
+  font: inherit;
+  color: inherit;
+}
+
+.card-body:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px hsl(var(--ring) / 0.3);
+  border-radius: var(--radius-lg);
 }
 
 .tag-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 h3 {
-  margin: 10px 0 6px;
-  font-size: 1.65rem;
+  margin: 6px 0 4px;
+  font-size: 1.5rem;
   letter-spacing: -0.02em;
+}
+
+.detail-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
 }
 
 .description {
   color: var(--text-primary);
   margin: 0;
-  font-size: 1.14rem;
+  font-size: 1.05rem;
   line-height: 1.35;
-  line-clamp: 2;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
   overflow: hidden;
-}
-
-.meta-line {
-  margin-top: 10px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  color: var(--text-secondary);
-  font-size: 1rem;
-}
-
-.header-side {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
+  text-overflow: ellipsis;
 }
 
 .time-label {
   color: var(--text-secondary);
-  font-size: 1.05rem;
-  text-align: right;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
-@media (max-width: 860px) {
-  .deviation-card-header {
-    flex-direction: column;
-  }
+.card-actions {
+  display: flex;
+  align-items: flex-start;
+  padding: 12px 12px 0 0;
+  flex-shrink: 0;
+}
 
-  .header-side {
-    width: 100%;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-  }
+.actions-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-md);
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.actions-trigger:hover {
+  background: hsl(var(--accent, 250 40% 95%));
+  color: hsl(var(--foreground));
+}
+
+.menu-icon--red { color: #a62929; }
+.menu-icon--amber { color: #946013; }
+.menu-icon--green { color: #3c8f2c; }
+
+.menu-item--active {
+  font-weight: 600;
+}
+
+.menu-item--danger {
+  color: #c62828;
+}
+.menu-item--danger:hover {
+  background-color: #fde8e8 !important;
+  color: #c62828 !important;
 }
 </style>

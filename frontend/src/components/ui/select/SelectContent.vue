@@ -38,7 +38,7 @@ onBeforeUnmount(() => {
 <template>
   <Transition name="select-content">
     <div
-      v-if="isOpen"
+      v-show="isOpen"
       ref="contentRef"
       :class="['select-content', props.class]"
     >

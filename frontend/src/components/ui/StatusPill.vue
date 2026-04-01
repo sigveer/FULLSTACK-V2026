@@ -20,8 +20,8 @@ withDefaults(
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-pill);
-  padding: 6px 12px;
-  font-size: 0.95rem;
+  padding: 4px 10px;
+  font-size: 0.82rem;
   font-weight: 600;
   line-height: 1;
   white-space: nowrap;

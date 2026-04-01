@@ -1,28 +1,23 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import {
-  Check,
-  ChevronDown,
-  Pencil,
-  Plus,
-  Trash2,
-} from 'lucide-vue-next'
-import type { Checklist, ChecklistItem } from '@/types/checklist'
+import { computed, ref } from 'vue'
+import { MoreVertical, CheckCircle2, Pencil, Trash2 } from 'lucide-vue-next'
+import type { Checklist } from '@/types/checklist'
 import StatusPill from '@/components/ui/StatusPill.vue'
-import Button from '@/components/ui/button/Button.vue'
-import Checkbox from '@/components/ui/checkbox/Checkbox.vue'
-import Collapsible from '@/components/ui/collapsible/Collapsible.vue'
-import CollapsibleContent from '@/components/ui/collapsible/CollapsibleContent.vue'
-import CollapsibleTrigger from '@/components/ui/collapsible/CollapsibleTrigger.vue'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
 import AlertDialog from '@/components/ui/alert-dialog/AlertDialog.vue'
-import AlertDialogTrigger from '@/components/ui/alert-dialog/AlertDialogTrigger.vue'
+import AlertDialogAction from '@/components/ui/alert-dialog/AlertDialogAction.vue'
+import AlertDialogCancel from '@/components/ui/alert-dialog/AlertDialogCancel.vue'
 import AlertDialogContent from '@/components/ui/alert-dialog/AlertDialogContent.vue'
-import AlertDialogHeader from '@/components/ui/alert-dialog/AlertDialogHeader.vue'
-import AlertDialogTitle from '@/components/ui/alert-dialog/AlertDialogTitle.vue'
 import AlertDialogDescription from '@/components/ui/alert-dialog/AlertDialogDescription.vue'
 import AlertDialogFooter from '@/components/ui/alert-dialog/AlertDialogFooter.vue'
-import AlertDialogCancel from '@/components/ui/alert-dialog/AlertDialogCancel.vue'
-import AlertDialogAction from '@/components/ui/alert-dialog/AlertDialogAction.vue'
+import AlertDialogHeader from '@/components/ui/alert-dialog/AlertDialogHeader.vue'
+import AlertDialogTitle from '@/components/ui/alert-dialog/AlertDialogTitle.vue'
 
 const props = defineProps<{
   checklist: Checklist
@@ -31,71 +26,52 @@ const props = defineProps<{
 }>()
 
 const emits = defineEmits<{
+  (e: 'open', checklist: Checklist): void
   (e: 'edit-checklist', checklist: Checklist): void
   (e: 'delete-checklist', checklistId: number): void
-  (e: 'new-item', checklist: Checklist): void
-  (e: 'edit-item', payload: { checklist: Checklist; item: ChecklistItem }): void
-  (e: 'delete-item', payload: { checklistId: number; itemId: number }): void
-  (e: 'toggle-item-completed', payload: { checklistId: number; itemId: number; completed: boolean }): void
   (e: 'toggle-checklist-completed', payload: { checklistId: number; completed: boolean }): void
 }>()
 
+const deleteDialogOpen = ref(false)
+
 const frequencyLabel = computed(() => {
   switch (props.checklist.frequency) {
-    case 'DAILY':
-      return 'Daglig'
-    case 'WEEKLY':
-      return 'Ukentlig'
-    case 'MONTHLY':
-      return 'Månedlig'
-    case 'YEARLY':
-      return 'Årlig'
-    default:
-      return props.checklist.frequency
+    case 'DAILY': return 'Daglig'
+    case 'WEEKLY': return 'Ukentlig'
+    case 'MONTHLY': return 'Månedlig'
+    case 'YEARLY': return 'Årlig'
+    default: return props.checklist.frequency
   }
 })
 
 const frequencyTone = computed(() => {
   switch (props.checklist.frequency) {
-    case 'DAILY':
-      return 'brand'
-    case 'WEEKLY':
-      return 'ok'
-    case 'MONTHLY':
-      return 'warning'
-    case 'YEARLY':
-      return 'neutral'
-    default:
-      return 'neutral'
+    case 'DAILY': return 'brand'
+    case 'WEEKLY': return 'ok'
+    case 'MONTHLY': return 'warning'
+    case 'YEARLY': return 'neutral'
+    default: return 'neutral'
   }
 })
 
 const completionPercent = computed(() => {
-  if (props.checklist.itemCount === 0) {
-    return 0
-  }
+  if (props.checklist.itemCount === 0) return 0
   return Math.round((props.checklist.completedItemCount / props.checklist.itemCount) * 100)
 })
 
 const statusLabel = computed(() => {
   switch (props.checklist.status) {
-    case 'COMPLETED':
-      return 'Fullført'
-    case 'IN_PROGRESS':
-      return 'Pågår'
-    default:
-      return 'Ikke startet'
+    case 'COMPLETED': return 'Fullført'
+    case 'IN_PROGRESS': return 'Pågår'
+    default: return 'Ikke startet'
   }
 })
 
 const statusTone = computed(() => {
   switch (props.checklist.status) {
-    case 'COMPLETED':
-      return 'ok'
-    case 'IN_PROGRESS':
-      return 'warning'
-    default:
-      return 'neutral'
+    case 'COMPLETED': return 'ok'
+    case 'IN_PROGRESS': return 'warning'
+    default: return 'neutral'
   }
 })
 
@@ -105,45 +81,54 @@ const checklistComplete = computed(() =>
 </script>
 
 <template>
-  <Collapsible class="checklist-card" :default-open="false">
-    <div class="card-header">
-      <div class="progress-circle" :class="{ 'progress-circle--done': checklistComplete }">
-        <Check v-if="checklistComplete" />
-        <span v-else>{{ checklist.completedItemCount }}/{{ checklist.itemCount }}</span>
-      </div>
-
-      <div>
-        <h3>{{ checklist.name }}</h3>
-        <p v-if="checklist.description" class="description">{{ checklist.description }}</p>
-        <div class="meta-row">
+  <div class="checklist-card">
+    <div class="card-top">
+      <button type="button" class="card-body" @click="emits('open', checklist)">
+        <div class="tag-row">
           <StatusPill :label="frequencyLabel" :tone="frequencyTone" />
           <StatusPill :label="statusLabel" :tone="statusTone" />
-          <span>{{ checklist.completedItemCount }}/{{ checklist.itemCount }} punkter fullført</span>
         </div>
+
+        <h3>{{ checklist.name }}</h3>
+
+        <div class="detail-row">
+          <p v-if="checklist.description" class="description">{{ checklist.description }}</p>
+          <span class="completion-label">{{ checklist.completedItemCount }}/{{ checklist.itemCount }} fullført</span>
+        </div>
+
         <div class="progress-track" role="progressbar" :aria-valuenow="completionPercent" aria-valuemin="0" aria-valuemax="100">
           <div class="progress-fill" :class="`progress-fill--${statusTone}`" :style="{ width: `${completionPercent}%` }" />
         </div>
-      </div>
+      </button>
 
-      <div class="header-actions">
-        <label v-if="canComplete && checklist.itemCount > 0" class="complete-all-toggle">
-          <Checkbox
-            :checked="checklistComplete"
-            @update:checked="(value) => emits('toggle-checklist-completed', { checklistId: checklist.id, completed: value })"
-          />
-          <span>Fullfør hele</span>
-        </label>
+      <div v-if="canManage || canComplete" class="card-actions" @click.stop>
+        <DropdownMenu>
+          <DropdownMenuTrigger as-child>
+            <button type="button" class="actions-trigger">
+              <MoreVertical :size="18" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" :side-offset="4">
+            <DropdownMenuItem
+              v-if="canComplete && checklist.itemCount > 0"
+              @click="emits('toggle-checklist-completed', { checklistId: checklist.id, completed: !checklistComplete })"
+            >
+              <CheckCircle2 :size="16" class="menu-icon--green" />
+              {{ checklistComplete ? 'Angre fullføring' : 'Fullfør hele' }}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator v-if="canComplete && canManage && checklist.itemCount > 0" />
+            <DropdownMenuItem v-if="canManage" @click="emits('edit-checklist', checklist)">
+              <Pencil :size="16" />
+              Rediger
+            </DropdownMenuItem>
+            <DropdownMenuItem v-if="canManage" class="menu-item--danger" @click="deleteDialogOpen = true">
+              <Trash2 :size="16" />
+              Slett sjekkliste
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-        <Button v-if="canManage" variant="ghost" size="icon-sm" @click="emits('edit-checklist', checklist)">
-          <Pencil />
-        </Button>
-
-        <AlertDialog v-if="canManage">
-          <AlertDialogTrigger>
-            <Button variant="ghost" size="icon-sm" class="danger-action">
-              <Trash2 />
-            </Button>
-          </AlertDialogTrigger>
+        <AlertDialog v-model:open="deleteDialogOpen">
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Slett sjekkliste?</AlertDialogTitle>
@@ -159,144 +144,99 @@ const checklistComplete = computed(() =>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-
-        <CollapsibleTrigger as-child>
-          <Button variant="outline" size="icon-sm" class="toggle-button">
-            <ChevronDown />
-          </Button>
-        </CollapsibleTrigger>
       </div>
     </div>
-
-    <CollapsibleContent>
-      <div class="content-wrap">
-        <div v-if="checklist.items.length === 0" class="empty-state">
-          Ingen oppgaver ennå.
-        </div>
-
-        <ul v-else class="item-list">
-          <li v-for="item in checklist.items" :key="item.id" class="item-row">
-            <div class="item-main">
-              <Checkbox
-                v-if="canComplete"
-                :checked="item.completed"
-                @update:checked="(value) => emits('toggle-item-completed', { checklistId: checklist.id, itemId: item.id, completed: value })"
-              />
-
-              <div>
-              <p class="item-title" :class="{ 'item-title--done': item.completed }">{{ item.title }}</p>
-              <p v-if="item.description" class="item-description">{{ item.description }}</p>
-              </div>
-            </div>
-
-            <div v-if="canManage" class="item-actions">
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                @click="emits('edit-item', { checklist, item })"
-              >
-                <Pencil />
-              </Button>
-
-              <AlertDialog>
-                <AlertDialogTrigger>
-                  <Button variant="ghost" size="icon-sm" class="danger-action">
-                    <Trash2 />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Slett oppgave?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Oppgaven kan ikke gjenopprettes etter sletting.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Avbryt</AlertDialogCancel>
-                    <AlertDialogAction
-                      variant="destructive"
-                      @click="emits('delete-item', { checklistId: checklist.id, itemId: item.id })"
-                    >
-                      Slett
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-          </li>
-        </ul>
-
-        <Button v-if="canManage" variant="secondary" @click="emits('new-item', checklist)">
-          <Plus /> Legg til oppgave
-        </Button>
-      </div>
-    </CollapsibleContent>
-  </Collapsible>
+  </div>
 </template>
 
 <style scoped>
 .checklist-card {
+  position: relative;
+  width: 100%;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--card-bg);
-  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow 150ms ease;
 }
 
-.card-header {
+.checklist-card:hover {
+  box-shadow: 0 6px 14px rgb(0 0 0 / 0.08);
+}
+
+.card-top {
   display: flex;
   align-items: flex-start;
+}
+
+.card-body {
+  flex: 1;
+  min-width: 0;
+  padding: 14px 16px 14px 22px;
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: none;
+  font: inherit;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.card-body:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px hsl(var(--ring) / 0.3);
+  border-radius: var(--radius-lg);
+}
+
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+h3 {
+  margin: 2px 0 0;
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+}
+
+.detail-row {
+  display: flex;
+  align-items: baseline;
   gap: 12px;
-}
-
-.progress-circle {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background: #ece8de;
-  color: #806b2f;
-  font-weight: 700;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-}
-
-.progress-circle--done {
-  background: #dcebd8;
-  color: #2f6f34;
-}
-
-.progress-circle :deep(svg) {
-  width: 22px;
-  height: 22px;
-}
-
-.card-header h3 {
-  margin: 0;
-  font-size: 1.3rem;
+  margin-top: 2px;
 }
 
 .description {
-  margin-top: 4px;
-  color: var(--text-secondary);
-  font-size: 0.96rem;
+  color: var(--text-primary);
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.35;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.meta-row {
-  margin-top: 8px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  font-size: 0.9rem;
+.completion-label {
   color: var(--text-secondary);
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+  margin-left: auto;
 }
 
 .progress-track {
-  margin-top: 8px;
+  margin-top: 4px;
   height: 5px;
   border-radius: var(--radius-pill);
   background: #d8d8d5;
   overflow: hidden;
+  width: 100%;
 }
 
 .progress-fill {
@@ -304,118 +244,41 @@ const checklistComplete = computed(() =>
   border-radius: var(--radius-pill);
 }
 
-.progress-fill--ok {
-  background: var(--green);
-}
+.progress-fill--ok { background: var(--green); }
+.progress-fill--warning { background: var(--amber); }
+.progress-fill--neutral { background: #9a9a96; }
 
-.progress-fill--warning {
-  background: var(--amber);
-}
-
-.progress-fill--neutral {
-  background: #9a9a96;
-}
-
-.header-actions {
+.card-actions {
   display: flex;
   align-items: flex-start;
-  gap: 4px;
+  padding: 12px 12px 0 0;
+  flex-shrink: 0;
 }
 
-.complete-all-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-
-.danger-action {
-  color: var(--red);
-}
-
-.toggle-button :deep(svg) {
-  transition: transform 160ms ease;
-}
-
-[data-state='open'] .toggle-button :deep(svg) {
-  transform: rotate(180deg);
-}
-
-.content-wrap {
-  margin-top: 12px;
-  border-top: 1px solid #d8d8d5;
-  padding-top: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.empty-state {
-  font-size: 0.94rem;
-  color: var(--text-secondary);
-  background: #efefed;
-  border-radius: var(--radius-md);
-  padding: 10px;
-}
-
-.item-list {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.item-row {
-  border: 1px solid #d9d9d6;
-  border-radius: var(--radius-md);
-  background: #f3f3f2;
-  padding: 10px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.item-main {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-.item-title {
-  margin: 0;
-  font-weight: 700;
-}
-
-.item-title--done {
-  text-decoration: line-through;
-  color: #5b615f;
-}
-
-.item-description {
-  margin: 2px 0 0;
-  font-size: 0.92rem;
-  color: var(--text-secondary);
-}
-
-.item-actions {
+.actions-trigger {
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-md);
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
 }
 
-@media (max-width: 760px) {
-  .card-header {
-    flex-direction: column;
-  }
+.actions-trigger:hover {
+  background: hsl(var(--accent, 250 40% 95%));
+  color: hsl(var(--foreground));
+}
 
-  .header-actions {
-    justify-content: flex-end;
-  }
+.menu-icon--green { color: #3c8f2c; }
 
-  .item-row {
-    flex-direction: column;
-  }
+.menu-item--danger { color: #c62828; }
+.menu-item--danger:hover {
+  background-color: #fde8e8 !important;
+  color: #c62828 !important;
 }
 </style>

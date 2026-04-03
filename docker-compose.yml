@@ -26,13 +26,9 @@ services:
       args:
         SERVICE_MODULE: ik-food-service
     container_name: ik_mat
+    env_file: .env
     environment:
       DB_URL: jdbc:mysql://mysql:3306/ik_system?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-      DB_USERNAME: ik_user
-      DB_PASSWORD: ik_password
-      JWT_SECRET: super-secret-key-that-must-be-at-least-256-bits-long-for-hmac-sha
-      JWT_ACCESS_EXPIRATION: 900000
-      JWT_REFRESH_EXPIRATION: 604800000
     ports:
       - "8081:8080"
     networks:
@@ -47,13 +43,9 @@ services:
       args:
         SERVICE_MODULE: ik-alcohol-service
     container_name: ik_alkohol
+    env_file: .env
     environment:
       DB_URL: jdbc:mysql://mysql:3306/ik_system?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-      DB_USERNAME: ik_user
-      DB_PASSWORD: ik_password
-      JWT_SECRET: super-secret-key-that-must-be-at-least-256-bits-long-for-hmac-sha
-      JWT_ACCESS_EXPIRATION: 900000
-      JWT_REFRESH_EXPIRATION: 604800000
     ports:
       - "8082:8080"
     networks:

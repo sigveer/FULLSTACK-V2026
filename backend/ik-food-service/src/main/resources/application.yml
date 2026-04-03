@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: ik-food-service
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/ik_system?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    username: ${DB_USERNAME:ik_user}
+    password: ${DB_PASSWORD:ik_password}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+jwt:
+  secret: ${JWT_SECRET:super-secret-key-that-must-be-at-least-256-bits-long-for-hmac-sha}
+  access-token-expiration: ${JWT_ACCESS_EXPIRATION:900000}
+  refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+
+springdoc:
+  swagger-ui:
+    enabled: false
+  api-docs:
+    path: /v3/api-docs
+
+aws:
+  s3:
+    bucket: ${AWS_S3_BUCKET:fullstack-v2026}
+    region: ${AWS_S3_REGION:eu-central-1}

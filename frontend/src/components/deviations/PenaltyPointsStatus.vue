@@ -151,6 +151,7 @@ const progressColor = computed(() => {
 }
 
 .info-card {
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: var(--radius-md);
   padding: 12px;
   display: flex;
@@ -158,8 +159,8 @@ const progressColor = computed(() => {
   gap: 2px;
 }
 
-.info-card--last { background: #fde8e8; }
-.info-card--period { background: #dcebd8; }
+.info-card--last { background: #fde8e8; border-color: #e0aeb5; }
+.info-card--period { background: #dcebd8; border-color: #b7d18e; }
 
 .info-label {
   font-size: 0.78rem;

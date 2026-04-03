@@ -32,7 +32,7 @@
 .guide-card {
   border: 1px solid hsl(var(--border));
   border-radius: var(--radius-lg);
-  background: hsl(var(--card));
+  background: #ffffff;
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
@@ -59,6 +59,7 @@
   gap: 12px;
   padding: 10px 12px;
   border-radius: var(--radius-md);
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .tier-badge {

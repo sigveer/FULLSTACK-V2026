@@ -17,7 +17,7 @@ import AlertDialogDescription from '@/components/ui/alert-dialog/AlertDialogDesc
 import AlertDialogFooter from '@/components/ui/alert-dialog/AlertDialogFooter.vue'
 import AlertDialogHeader from '@/components/ui/alert-dialog/AlertDialogHeader.vue'
 import AlertDialogTitle from '@/components/ui/alert-dialog/AlertDialogTitle.vue'
-import type { FoodDeviation, FoodDeviationType, FoodDeviationStatus, DeviationSeverity } from '@/types/deviation'
+import type { FoodDeviation, FoodDeviationType, FoodDeviationStatus } from '@/types/deviation'
 
 const props = defineProps<{
   deviation: FoodDeviation

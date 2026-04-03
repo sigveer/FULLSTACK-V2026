@@ -84,7 +84,7 @@ const router = createRouter({
       component: DeviationsView,
     },
     {
-      path: '/avvik/:id',
+      path: '/avvik/:module/:id',
       name: 'avvik-detail',
       component: () => import('@/views/DeviationDetailView.vue'),
     },

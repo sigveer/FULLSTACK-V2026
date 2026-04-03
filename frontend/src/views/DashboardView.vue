@@ -8,16 +8,19 @@ import StatusPill from '@/components/ui/StatusPill.vue'
 import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { useChecklistsQuery } from '@/composables/useChecklists'
-import { useDeviationsQuery } from '@/composables/useDeviations'
+import { useFoodDeviationsQuery } from '@/composables/useFoodDeviations'
+import { useAlcoholDeviationsQuery } from '@/composables/useAlcoholDeviations'
 import type { Checklist } from '@/types/checklist'
 import type { DeviationSeverity } from '@/types/deviation'
 
-const deviationsQuery = useDeviationsQuery()
+const foodQuery = useFoodDeviationsQuery()
+const alcoholQuery = useAlcoholDeviationsQuery()
 const checklistsQuery = useChecklistsQuery()
 
 function refreshDashboardData() {
   checklistsQuery.refetch()
-  deviationsQuery.refetch()
+  foodQuery.refetch()
+  alcoholQuery.refetch()
 }
 
 onMounted(() => {
@@ -39,11 +42,10 @@ const kpis = computed<Array<{
   }
 }>>(() => {
   const dailyStats = getDailyChecklistStats(checklistsQuery.data.value ?? [])
-  const allDeviations = deviationsQuery.data.value ?? []
-  const openCount = allDeviations.filter((item) => item.status === 'OPEN').length
-  const criticalOpenCount = allDeviations.filter(
-    (item) => item.status === 'OPEN' && item.severity === 'CRITICAL',
-  ).length
+  const foodItems = foodQuery.data.value ?? []
+  const alcoholItems = alcoholQuery.data.value ?? []
+  const openCount = foodItems.filter((d) => d.status === 'OPEN').length + alcoholItems.filter((d) => d.status === 'OPEN').length
+  const criticalFoodCount = foodItems.filter((d) => d.status === 'OPEN' && (d.severity === 'CRITICAL' || d.severity === 'HIGH')).length
 
   return [
     {
@@ -63,7 +65,7 @@ const kpis = computed<Array<{
     {
       title: 'Åpne avvik',
       value: String(openCount),
-      subtitle: `${criticalOpenCount} kritisk`,
+      subtitle: `${criticalFoodCount} kritisk`,
     },
     {
       title: 'Opplæring',
@@ -102,18 +104,29 @@ const temperatures = [
 ]
 
 const latestDeviations = computed(() => {
-  const source = deviationsQuery.data.value ?? []
+  const food = (foodQuery.data.value ?? []).map((d) => ({
+    id: d.id,
+    title: d.description.slice(0, 80),
+    moduleLabel: 'IK-Mat',
+    reportedBy: d.reportedByUserName,
+    reportedAt: d.reportedAt,
+    severityLabel: toSeverityLabel(d.severity),
+  }))
+  const alcohol = (alcoholQuery.data.value ?? []).map((d) => ({
+    id: d.id,
+    title: d.description.slice(0, 80),
+    moduleLabel: 'IK-Alkohol',
+    reportedBy: d.reportedByUserName,
+    reportedAt: d.reportedAt,
+    severityLabel: 'Middels' as const,
+  }))
 
-  return [...source]
+  return [...food, ...alcohol]
     .sort((a, b) => new Date(b.reportedAt).getTime() - new Date(a.reportedAt).getTime())
     .slice(0, 3)
     .map((item) => ({
-      id: item.id,
-      title: item.title,
-      moduleLabel: item.module === 'IK_MAT' ? 'IK-Mat' : 'IK-Alkohol',
-      reportedBy: item.reportedByUserName,
+      ...item,
       relativeTime: toRelativeTime(item.reportedAt),
-      severityLabel: toSeverityLabel(item.severity),
     }))
 })
 

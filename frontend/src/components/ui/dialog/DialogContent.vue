@@ -56,6 +56,8 @@ onBeforeUnmount(() => document.removeEventListener("keydown", onKeydown))
   display: grid;
   width: 100%;
   max-width: 32rem;
+  max-height: 95vh;
+  overflow-y: auto;
   transform: translate(-50%, -50%);
   gap: 1rem;
   border: 1px solid hsl(var(--border, 35 15% 90%));

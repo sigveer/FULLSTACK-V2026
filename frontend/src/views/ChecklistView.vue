@@ -9,6 +9,7 @@ import Button from '@/components/ui/button/Button.vue'
 import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import ChecklistCard from '@/components/checklists/ChecklistCard.vue'
+import OverviewCard from '@/components/common/OverviewCard.vue'
 import ChecklistFormDialog from '@/components/checklists/ChecklistFormDialog.vue'
 
 import {
@@ -47,6 +48,16 @@ const canManage = computed(() => auth.role === 'ADMIN' || auth.role === 'MANAGER
 const canComplete = computed(() => !!auth.role)
 
 const checklists = computed(() => checklistQuery.data.value ?? [])
+
+const stats = computed(() => {
+  const list = checklists.value
+  return {
+    total: list.length,
+    completed: list.filter((c) => c.status === 'COMPLETED').length,
+    inProgress: list.filter((c) => c.status === 'IN_PROGRESS').length,
+    notStarted: list.filter((c) => c.status === 'NOT_STARTED').length,
+  }
+})
 
 const frequencyOrder: ChecklistFrequency[] = ['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY']
 
@@ -201,6 +212,14 @@ function handleMutationError(error: unknown, fallbackMessage: string) {
         </Button>
       </section>
 
+      <!-- Stats cards -->
+      <section class="cards-section" aria-label="Sjekklisteoversikt">
+        <OverviewCard label="Totalt sjekklister" :value="stats.total" />
+        <OverviewCard label="Fullført" :value="stats.completed" variant="resolved" />
+        <OverviewCard label="Under arbeid" :value="stats.inProgress" variant="in-progress" />
+        <OverviewCard label="Ikke startet" :value="stats.notStarted" variant="open" />
+      </section>
+
       <section class="filters-row" aria-label="Filtrer frekvens">
         <button
           v-for="filter in filters"
@@ -304,6 +323,12 @@ h1 {
 .header-row p {
   margin-top: 6px;
   color: var(--text-secondary);
+}
+
+.cards-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
 }
 
 .filters-row {

@@ -5,6 +5,15 @@ import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import Button from '@/components/ui/button/Button.vue'
 import Switch from '@/components/ui/switch/Switch.vue'
+import AlertDialog from '@/components/ui/alert-dialog/AlertDialog.vue'
+import AlertDialogTrigger from '@/components/ui/alert-dialog/AlertDialogTrigger.vue'
+import AlertDialogContent from '@/components/ui/alert-dialog/AlertDialogContent.vue'
+import AlertDialogHeader from '@/components/ui/alert-dialog/AlertDialogHeader.vue'
+import AlertDialogTitle from '@/components/ui/alert-dialog/AlertDialogTitle.vue'
+import AlertDialogDescription from '@/components/ui/alert-dialog/AlertDialogDescription.vue'
+import AlertDialogFooter from '@/components/ui/alert-dialog/AlertDialogFooter.vue'
+import AlertDialogCancel from '@/components/ui/alert-dialog/AlertDialogCancel.vue'
+import AlertDialogAction from '@/components/ui/alert-dialog/AlertDialogAction.vue'
 
 const unreadBadge = ref(true)
 const commEmails = ref(false)
@@ -27,16 +36,12 @@ const tipsEmails = ref(false)
 
       <section class="settings-section">
         <h2 class="section-title">Merker</h2>
-
         <div class="setting-row">
           <div class="setting-info">
             <span class="setting-label">Aktiver ulest melding-merke</span>
             <span class="setting-desc">Viser et rødt merke i appikonet når du har uleste meldinger.</span>
           </div>
-          <Switch
-            :checked="unreadBadge"
-            @update:checked="unreadBadge = $event"
-          />
+          <Switch :checked="unreadBadge" @update:checked="unreadBadge = $event" />
         </div>
       </section>
 
@@ -50,10 +55,7 @@ const tipsEmails = ref(false)
             <span class="setting-label">Kommunikasjons-e-poster</span>
             <span class="setting-desc">Motta e-poster om ubesvarte anrop, meldinger og sammendrag av meldinger.</span>
           </div>
-          <Switch
-            :checked="commEmails"
-            @update:checked="commEmails = $event"
-          />
+          <Switch :checked="commEmails" @update:checked="commEmails = $event" />
         </div>
 
         <div class="setting-row">
@@ -61,10 +63,7 @@ const tipsEmails = ref(false)
             <span class="setting-label">Sosiale e-poster</span>
             <span class="setting-desc">Motta e-poster om venneforespørsler, forslag til venner og eventer på serveren din.</span>
           </div>
-          <Switch
-            :checked="socialEmails"
-            @update:checked="socialEmails = $event"
-          />
+          <Switch :checked="socialEmails" @update:checked="socialEmails = $event" />
         </div>
 
         <div class="setting-row">
@@ -72,10 +71,7 @@ const tipsEmails = ref(false)
             <span class="setting-label">E-poster med kunngjøringer og oppdateringer</span>
             <span class="setting-desc">Motta e-poster om produktoppdateringer, nytt innhold, forbedringer og feilretting.</span>
           </div>
-          <Switch
-            :checked="announcementEmails"
-            @update:checked="announcementEmails = $event"
-          />
+          <Switch :checked="announcementEmails" @update:checked="announcementEmails = $event" />
         </div>
 
         <div class="setting-row">
@@ -83,10 +79,7 @@ const tipsEmails = ref(false)
             <span class="setting-label">E-poster med tips</span>
             <span class="setting-desc">Motta e-poster med nyttige råd om hvordan du bruker Discord, og med informasjon om mindre kjente funksjoner.</span>
           </div>
-          <Switch
-            :checked="tipsEmails"
-            @update:checked="tipsEmails = $event"
-          />
+          <Switch :checked="tipsEmails" @update:checked="tipsEmails = $event" />
         </div>
       </section>
 
@@ -99,7 +92,24 @@ const tipsEmails = ref(false)
         </p>
         <div class="button-row">
           <Button variant="default">Vis sikkerhetskoder</Button>
-          <Button variant="outline" class="btn--danger-outline">Fjern autentiseringsapp</Button>
+
+          <AlertDialog>
+            <AlertDialogTrigger>
+              <Button variant="outline" class="btn--danger-outline">Fjern autentiseringsapp</Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Fjern autentiseringsapp?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Er du sikker på at du vil fjerne autentiseringsappen? Kontoen din vil bli mindre sikker.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Avbryt</AlertDialogCancel>
+                <AlertDialogAction variant="destructive">Ja, fjern</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </section>
 
@@ -113,7 +123,23 @@ const tipsEmails = ref(false)
           <Button variant="link" class="inline-link">Vis</Button>
         </p>
         <div class="button-row">
-          <Button variant="outline" class="btn--danger-outline">Fjern SMS-autentisering</Button>
+          <AlertDialog>
+            <AlertDialogTrigger>
+              <Button variant="outline" class="btn--danger-outline">Fjern SMS-autentisering</Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Fjern SMS-autentisering?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Er du sikker på at du vil fjerne SMS-autentiseringen? Du mister reserveløsningen for innlogging.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Avbryt</AlertDialogCancel>
+                <AlertDialogAction variant="destructive">Ja, fjern</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </section>
 
@@ -131,8 +157,43 @@ const tipsEmails = ref(false)
         <h2 class="section-title">Fjerning av konto</h2>
         <p class="section-desc">Hvis du deaktiverer kontoen din, kan du når som helst hente den frem igjen.</p>
         <div class="button-row">
-          <Button variant="destructive">Deaktiver kontoen</Button>
-          <Button variant="outline" class="btn--danger-outline">Slett kontoen</Button>
+
+          <AlertDialog>
+            <AlertDialogTrigger>
+              <Button variant="destructive">Deaktiver kontoen</Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Deaktiver kontoen?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Er du sikker på at du vil deaktivere kontoen din? Du kan aktivere den igjen når som helst.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Avbryt</AlertDialogCancel>
+                <AlertDialogAction variant="destructive">Ja, deaktiver</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <AlertDialog>
+            <AlertDialogTrigger>
+              <Button variant="outline" class="btn--danger-outline">Slett kontoen</Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Slett kontoen?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Er du sikker på at du vil slette kontoen din? Dette kan ikke angres og all data vil gå tapt.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Avbryt</AlertDialogCancel>
+                <AlertDialogAction variant="destructive">Ja, slett</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
         </div>
       </section>
 
@@ -141,7 +202,6 @@ const tipsEmails = ref(false)
 </template>
 
 <style scoped>
-
 .page-header {
   display: flex;
   height: 4rem;
@@ -169,6 +229,8 @@ const tipsEmails = ref(false)
   flex-direction: column;
   padding: 0 1.5rem 2rem;
   max-width: 760px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .settings-section {

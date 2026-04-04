@@ -63,6 +63,11 @@ const router = createRouter({
       component: TemperatureView,
     },
     {
+      path: '/temperatur/hvitevarer',
+      name: 'temperatur-hvitevarer',
+      component: () => import('@/views/TemperatureAppliancesView.vue'),
+    },
+    {
       path: '/business',
       name: 'business',
       component: BusinessView,

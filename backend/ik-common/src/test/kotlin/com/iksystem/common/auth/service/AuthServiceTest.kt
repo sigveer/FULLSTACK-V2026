@@ -11,6 +11,7 @@ import com.iksystem.common.auth.dto.SelectOrgRequest
 import com.iksystem.common.membership.model.Membership
 import com.iksystem.common.membership.repository.MembershipRepository
 import com.iksystem.common.organization.model.Organization
+import com.iksystem.common.resend.service.ResendService
 import com.iksystem.common.security.JwtService
 import com.iksystem.common.session.repository.SessionRepository
 import com.iksystem.common.token.model.RefreshToken
@@ -37,6 +38,7 @@ class AuthServiceTest : FunSpec({
     val sessionRepository = mockk<SessionRepository>()
     val jwtService = mockk<JwtService>()
     val passwordEncoder = mockk<PasswordEncoder>()
+    val emailService = mockk<ResendService>()
 
     val service = AuthService(
         userRepository = userRepository,
@@ -45,6 +47,7 @@ class AuthServiceTest : FunSpec({
         sessionRepository = sessionRepository,
         jwtService = jwtService,
         passwordEncoder = passwordEncoder,
+        emailService = emailService,
         accessTokenExpiration = 900_000L,
         refreshTokenExpiration = 604_800_000L,
     )
@@ -54,7 +57,7 @@ class AuthServiceTest : FunSpec({
     val membership = Membership(id = 1L, user = user, organization = org, role = Role.ADMIN)
 
     beforeTest {
-        clearMocks(userRepository, membershipRepository, refreshTokenRepository, sessionRepository, jwtService, passwordEncoder)
+        clearMocks(userRepository, membershipRepository, refreshTokenRepository, sessionRepository, jwtService, passwordEncoder, emailService)
     }
 
     test("register creates user and returns pre-auth token") {
@@ -63,6 +66,7 @@ class AuthServiceTest : FunSpec({
         every { passwordEncoder.encode("password1") } returns "hashed"
         every { userRepository.save(any()) } answers { firstArg<User>().copy(id = 2L) }
         every { jwtService.generatePreAuthToken(any()) } returns "pre-auth-jwt"
+        every { emailService.sendVerificationEmail(any(), any()) } just runs
 
         val result = service.register(request)
 

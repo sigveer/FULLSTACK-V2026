@@ -13,6 +13,7 @@ import com.iksystem.common.auth.dto.SelectOrgRequest
 import com.iksystem.common.membership.dto.MembershipSummary
 import com.iksystem.common.membership.model.Membership
 import com.iksystem.common.membership.repository.MembershipRepository
+import com.iksystem.common.resend.service.ResendService
 import com.iksystem.common.security.JwtService
 import com.iksystem.common.session.model.Session
 import com.iksystem.common.session.repository.SessionRepository
@@ -43,6 +44,7 @@ class AuthService(
     private val sessionRepository: SessionRepository,
     private val jwtService: JwtService,
     private val passwordEncoder: PasswordEncoder,
+    private val emailService: ResendService,
     @Value("\${jwt.access-token-expiration}") private val accessTokenExpiration: Long,
     @Value("\${jwt.refresh-token-expiration}") private val refreshTokenExpiration: Long,
 ) {
@@ -67,6 +69,8 @@ class AuthService(
         )
 
         val preAuthToken = jwtService.generatePreAuthToken(user)
+
+        emailService.sendRegistrationEmail(user.email, user.fullName)
 
         return LoginResponse(
             preAuthToken = preAuthToken,

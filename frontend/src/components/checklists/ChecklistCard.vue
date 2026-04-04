@@ -68,14 +68,6 @@ const statusLabel = computed(() => {
   }
 })
 
-const statusTone = computed(() => {
-  switch (props.checklist.status) {
-    case 'COMPLETED': return 'ok'
-    case 'IN_PROGRESS': return 'warning'
-    default: return 'neutral'
-  }
-})
-
 const isComplete = computed(() =>
   props.checklist.itemCount > 0 && props.checklist.completedItemCount === props.checklist.itemCount,
 )

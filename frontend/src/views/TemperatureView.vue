@@ -28,10 +28,10 @@ const auth = useAuthStore()
 const { activeAppliances, appliances, entries, deleteEntries } = useTemperatureMonitoring()
 const { registerTemperatureWithDeviation } = useTemperatureRegistration()
 
-const selectedApplianceId = ref('')
+const selectedApplianceId = ref<number | null>(null)
 const temperatureInput = ref('')
 const note = ref('')
-const selectedEntryIds = ref<string[]>([])
+const selectedEntryIds = ref<number[]>([])
 
 watch(
   activeAppliances,
@@ -40,14 +40,18 @@ watch(
       selectedApplianceId.value = list[0].id
     }
 
-    if (selectedApplianceId.value && !list.some((item) => item.id === selectedApplianceId.value)) {
-      selectedApplianceId.value = list[0]?.id ?? ''
+    if (selectedApplianceId.value != null && !list.some((item) => item.id === selectedApplianceId.value)) {
+      selectedApplianceId.value = list[0]?.id ?? null
     }
   },
   { immediate: true },
 )
 
 const selectedAppliance = computed(() => {
+  if (selectedApplianceId.value == null) {
+    return null
+  }
+
   return activeAppliances.value.find((item) => item.id === selectedApplianceId.value) ?? null
 })
 
@@ -186,7 +190,7 @@ async function submitTemperature(): Promise<void> {
   note.value = ''
 }
 
-function toggleEntrySelection(entryId: string, checked: boolean): void {
+function toggleEntrySelection(entryId: number, checked: boolean): void {
   if (checked) {
     if (!selectedEntryIds.value.includes(entryId)) {
       selectedEntryIds.value = [...selectedEntryIds.value, entryId]
@@ -206,8 +210,8 @@ function toggleSelectAll(checked: boolean): void {
   selectedEntryIds.value = recentEntries.value.map((entry) => entry.id)
 }
 
-function deleteSelectedMeasurements(): void {
-  const deletedCount = deleteEntries(selectedEntryIds.value)
+async function deleteSelectedMeasurements(): Promise<void> {
+  const deletedCount = await deleteEntries(selectedEntryIds.value)
   selectedEntryIds.value = []
 
   if (deletedCount > 0) {
@@ -276,12 +280,12 @@ function deleteSelectedMeasurements(): void {
           <div class="form-grid">
             <label class="field field--full">
               <span>Hvitevare</span>
-              <Select :model-value="selectedApplianceId" @update:model-value="(v) => (selectedApplianceId = v)">
+              <Select :model-value="selectedApplianceId == null ? '' : String(selectedApplianceId)" @update:model-value="(v) => (selectedApplianceId = Number(v))">
                 <SelectTrigger :disabled="activeAppliances.length === 0">
                   <SelectValue placeholder="Velg enhet" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem v-for="item in activeAppliances" :key="item.id" :value="item.id">
+                  <SelectItem v-for="item in activeAppliances" :key="item.id" :value="String(item.id)">
                     {{ item.name }} · {{ item.type === 'FRIDGE' ? 'Kjøleskap' : 'Fryser' }}
                   </SelectItem>
                 </SelectContent>

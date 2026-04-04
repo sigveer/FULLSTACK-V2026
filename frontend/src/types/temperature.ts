@@ -8,7 +8,7 @@ export interface TemperatureThreshold {
 }
 
 export interface TemperatureAppliance {
-  id: string
+  id: number
   name: string
   type: TemperatureApplianceType
   threshold: TemperatureThreshold
@@ -18,8 +18,8 @@ export interface TemperatureAppliance {
 }
 
 export interface TemperatureEntry {
-  id: string
-  applianceId: string
+  id: number
+  applianceId: number
   measuredAt: string
   measuredBy: string
   temperature: number
@@ -29,7 +29,7 @@ export interface TemperatureEntry {
 }
 
 export interface RegisterTemperaturePayload {
-  applianceId: string
+  applianceId: number
   temperature: number
   measuredBy?: string
   measuredAt?: string

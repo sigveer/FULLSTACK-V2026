@@ -1,6 +1,5 @@
 import { useCreateFoodDeviationMutation } from '@/composables/useFoodDeviations'
 import { useTemperatureMonitoring } from '@/composables/useTemperatureMonitoring'
-import { useAuthStore } from '@/stores/auth'
 
 function toDeviationSeverity(temperature: number, min: number, max: number): 'MEDIUM' | 'HIGH' | 'CRITICAL' {
   const distance = temperature < min ? min - temperature : temperature - max
@@ -17,12 +16,11 @@ function toDeviationSeverity(temperature: number, min: number, max: number): 'ME
 }
 
 export function useTemperatureRegistration() {
-  const auth = useAuthStore()
   const createFoodDeviation = useCreateFoodDeviationMutation()
   const { appliances, registerTemperature } = useTemperatureMonitoring()
 
   async function registerTemperatureWithDeviation(payload: {
-    applianceId: string
+    applianceId: number
     temperature: number
     note?: string
   }) {
@@ -31,10 +29,9 @@ export function useTemperatureRegistration() {
       return { entry: null, deviationCreated: false }
     }
 
-    const entry = registerTemperature({
+    const entry = await registerTemperature({
       applianceId: appliance.id,
       temperature: payload.temperature,
-      measuredBy: auth.user?.fullName,
       note: payload.note,
     })
 

@@ -53,7 +53,7 @@ const {
 
 const isCreateDialogOpen = ref(false)
 const isEditDialogOpen = ref(false)
-const editingApplianceId = ref<string | null>(null)
+const editingApplianceId = ref<number | null>(null)
 
 const createName = ref('')
 const createType = ref<TemperatureApplianceType>('FRIDGE')
@@ -130,7 +130,7 @@ function openCreateDialog(): void {
   isCreateDialogOpen.value = true
 }
 
-function submitCreate(): void {
+async function submitCreate(): Promise<void> {
   const name = createName.value.trim()
   if (!name) {
     return
@@ -145,7 +145,7 @@ function submitCreate(): void {
     return
   }
 
-  const created = createAppliance({
+  const created = await createAppliance({
     name,
     type: createType.value,
     threshold,
@@ -167,7 +167,7 @@ function openEditDialog(appliance: TemperatureAppliance): void {
   isEditDialogOpen.value = true
 }
 
-function submitEdit(): void {
+async function submitEdit(): Promise<void> {
   if (!editingApplianceId.value) {
     return
   }
@@ -186,23 +186,27 @@ function submitEdit(): void {
     return
   }
 
-  updateAppliance(editingApplianceId.value, {
+  const updated = await updateAppliance(editingApplianceId.value, {
     name,
     threshold,
   })
+
+  if (!updated) {
+    return
+  }
 
   isEditDialogOpen.value = false
   editingApplianceId.value = null
 }
 
-function toggleActive(appliance: TemperatureAppliance): void {
-  updateAppliance(appliance.id, {
+async function toggleActive(appliance: TemperatureAppliance): Promise<void> {
+  await updateAppliance(appliance.id, {
     isActive: !appliance.isActive,
   })
 }
 
-function removeApplianceById(applianceId: string): void {
-  deleteAppliance(applianceId)
+async function removeApplianceById(applianceId: number): Promise<void> {
+  await deleteAppliance(applianceId)
 }
 </script>
 

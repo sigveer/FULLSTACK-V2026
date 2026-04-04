@@ -1,5 +1,6 @@
 import { computed } from 'vue'
-import { useStorage } from '@vueuse/core'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import api from '@/lib/api'
 import type {
   CreateAppliancePayload,
   RegisterTemperaturePayload,
@@ -12,17 +13,36 @@ import type {
   UpdateAppliancePayload,
 } from '@/types/temperature'
 
-const APPLIANCES_STORAGE_KEY = 'ik.temperature.appliances.v1'
-const ENTRIES_STORAGE_KEY = 'ik.temperature.entries.v1'
-const DEFAULT_MEASURED_BY = 'Ansatt Ansattsen'
-
-function nowIso(): string {
-  return new Date().toISOString()
+interface TemperatureApplianceApi {
+  id: number
+  organizationId: number
+  name: string
+  applianceType: TemperatureApplianceType
+  minTemperature: number
+  maxTemperature: number
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+  lastMeasurement: TemperatureMeasurementApi | null
 }
 
-function createId(prefix: string): string {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+interface TemperatureMeasurementApi {
+  id: number
+  organizationId: number
+  applianceId: number
+  applianceName: string
+  applianceType: TemperatureApplianceType
+  measuredByUserId: number
+  measuredByUserName: string
+  measuredAt: string
+  temperature: number
+  note: string | null
+  status: TemperatureEntryStatus
+  createdAt: string
 }
+
+const temperatureAppliancesQueryKey = ['temperature-appliances']
+const temperatureMeasurementsQueryKey = ['temperature-measurements']
 
 export function getDefaultThreshold(type: TemperatureApplianceType): TemperatureThreshold {
   if (type === 'FRIDGE') {
@@ -48,42 +68,108 @@ export function formatThreshold(threshold: TemperatureThreshold): string {
   return `${threshold.min} til ${threshold.max}°C`
 }
 
-const seededAppliances: TemperatureAppliance[] = [
-  {
-    id: 'appliance-fridge-1',
-    name: 'Kjøleskap 1',
-    type: 'FRIDGE',
-    threshold: getDefaultThreshold('FRIDGE'),
-    isActive: true,
-    createdAt: nowIso(),
-    updatedAt: nowIso(),
-  },
-  {
-    id: 'appliance-freezer-1',
-    name: 'Fryser 1',
-    type: 'FREEZER',
-    threshold: getDefaultThreshold('FREEZER'),
-    isActive: true,
-    createdAt: nowIso(),
-    updatedAt: nowIso(),
-  },
-]
+function mapAppliance(apiItem: TemperatureApplianceApi): TemperatureAppliance {
+  return {
+    id: apiItem.id,
+    name: apiItem.name,
+    type: apiItem.applianceType,
+    threshold: {
+      min: Number(apiItem.minTemperature),
+      max: Number(apiItem.maxTemperature),
+    },
+    isActive: apiItem.isActive,
+    createdAt: apiItem.createdAt,
+    updatedAt: apiItem.updatedAt,
+  }
+}
 
-const appliancesState = useStorage<TemperatureAppliance[]>(APPLIANCES_STORAGE_KEY, seededAppliances)
-const entriesState = useStorage<TemperatureEntry[]>(ENTRIES_STORAGE_KEY, [])
+function mapMeasurement(apiItem: TemperatureMeasurementApi): TemperatureEntry {
+  return {
+    id: apiItem.id,
+    applianceId: apiItem.applianceId,
+    measuredAt: apiItem.measuredAt,
+    measuredBy: apiItem.measuredByUserName,
+    temperature: Number(apiItem.temperature),
+    note: apiItem.note ?? '',
+    status: apiItem.status,
+    createdAt: apiItem.createdAt,
+  }
+}
 
 export function useTemperatureMonitoring() {
-  const appliances = computed(() => appliancesState.value)
-  const activeAppliances = computed(() => appliancesState.value.filter((item) => item.isActive))
+  const qc = useQueryClient()
 
-  const entries = computed(() => {
-    return [...entriesState.value].sort((a, b) => {
-      return new Date(b.measuredAt).getTime() - new Date(a.measuredAt).getTime()
-    })
+  const appliancesQuery = useQuery({
+    queryKey: temperatureAppliancesQueryKey,
+    queryFn: () => api.get<TemperatureApplianceApi[]>('/temperature/appliances').then((r) => r.data),
   })
 
-  const entriesByApplianceId = computed<Record<string, TemperatureEntry[]>>(() => {
-    return entries.value.reduce<Record<string, TemperatureEntry[]>>((acc, item) => {
+  const measurementsQuery = useQuery({
+    queryKey: temperatureMeasurementsQueryKey,
+    queryFn: () => api.get<TemperatureMeasurementApi[]>('/temperature/measurements').then((r) => r.data),
+  })
+
+  const createApplianceMutation = useMutation({
+    mutationFn: (payload: CreateAppliancePayload) => {
+      return api.post<TemperatureApplianceApi>('/temperature/appliances', {
+        name: payload.name,
+        applianceType: payload.type,
+        minTemperature: payload.threshold?.min ?? getDefaultThreshold(payload.type).min,
+        maxTemperature: payload.threshold?.max ?? getDefaultThreshold(payload.type).max,
+      }).then((r) => r.data)
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: temperatureAppliancesQueryKey }),
+  })
+
+  const updateApplianceMutation = useMutation({
+    mutationFn: ({ applianceId, payload }: { applianceId: number; payload: UpdateAppliancePayload }) => {
+      return api.patch<TemperatureApplianceApi>(`/temperature/appliances/${applianceId}`, {
+        name: payload.name,
+        minTemperature: payload.threshold?.min,
+        maxTemperature: payload.threshold?.max,
+        isActive: payload.isActive,
+      }).then((r) => r.data)
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: temperatureAppliancesQueryKey }),
+  })
+
+  const deleteApplianceMutation = useMutation({
+    mutationFn: (applianceId: number) => api.delete(`/temperature/appliances/${applianceId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: temperatureAppliancesQueryKey })
+      qc.invalidateQueries({ queryKey: temperatureMeasurementsQueryKey })
+    },
+  })
+
+  const registerMeasurementMutation = useMutation({
+    mutationFn: (payload: RegisterTemperaturePayload) => {
+      return api.post<TemperatureMeasurementApi>('/temperature/measurements', {
+        applianceId: payload.applianceId,
+        temperature: payload.temperature,
+        measuredAt: payload.measuredAt,
+        note: payload.note,
+      }).then((r) => r.data)
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: temperatureMeasurementsQueryKey }),
+  })
+
+  const deleteMeasurementsMutation = useMutation({
+    mutationFn: (ids: number[]) => api.delete<{ deleted: number }>('/temperature/measurements', { data: { ids } }).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: temperatureMeasurementsQueryKey }),
+  })
+
+  const appliances = computed<TemperatureAppliance[]>(() => {
+    return (appliancesQuery.data.value ?? []).map(mapAppliance)
+  })
+
+  const activeAppliances = computed(() => appliances.value.filter((item) => item.isActive))
+
+  const entries = computed<TemperatureEntry[]>(() => {
+    return (measurementsQuery.data.value ?? []).map(mapMeasurement)
+  })
+
+  const entriesByApplianceId = computed<Record<number, TemperatureEntry[]>>(() => {
+    return entries.value.reduce<Record<number, TemperatureEntry[]>>((acc, item) => {
       const existing = acc[item.applianceId]
       if (!existing) {
         acc[item.applianceId] = [item]
@@ -105,7 +191,7 @@ export function useTemperatureMonitoring() {
     })
   })
 
-  function createAppliance(payload: CreateAppliancePayload): TemperatureAppliance | null {
+  async function createAppliance(payload: CreateAppliancePayload): Promise<TemperatureAppliance | null> {
     const normalizedName = payload.name.trim()
     const threshold = payload.threshold ?? getDefaultThreshold(payload.type)
 
@@ -113,23 +199,17 @@ export function useTemperatureMonitoring() {
       return null
     }
 
-    const timestamp = nowIso()
-    const appliance: TemperatureAppliance = {
-      id: createId('appliance'),
+    const result = await createApplianceMutation.mutateAsync({
+      ...payload,
       name: normalizedName,
-      type: payload.type,
       threshold,
-      isActive: true,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    }
+    })
 
-    appliancesState.value = [...appliancesState.value, appliance]
-    return appliance
+    return mapAppliance(result)
   }
 
-  function updateAppliance(applianceId: string, payload: UpdateAppliancePayload): TemperatureAppliance | null {
-    const existing = appliancesState.value.find((item) => item.id === applianceId)
+  async function updateAppliance(applianceId: number, payload: UpdateAppliancePayload): Promise<TemperatureAppliance | null> {
+    const existing = appliances.value.find((item) => item.id === applianceId)
     if (!existing) {
       return null
     }
@@ -139,59 +219,38 @@ export function useTemperatureMonitoring() {
       return null
     }
 
-    const updated: TemperatureAppliance = {
-      ...existing,
-      name: payload.name?.trim() || existing.name,
-      threshold: nextThreshold,
-      isActive: payload.isActive ?? existing.isActive,
-      updatedAt: nowIso(),
-    }
-
-    appliancesState.value = appliancesState.value.map((item) => {
-      return item.id === applianceId ? updated : item
+    const result = await updateApplianceMutation.mutateAsync({
+      applianceId,
+      payload: {
+        ...payload,
+        threshold: nextThreshold,
+      },
     })
 
-    return updated
+    return mapAppliance(result)
   }
 
-  function deleteAppliance(applianceId: string): void {
-    appliancesState.value = appliancesState.value.filter((item) => item.id !== applianceId)
-    entriesState.value = entriesState.value.filter((item) => item.applianceId !== applianceId)
+  async function deleteAppliance(applianceId: number): Promise<void> {
+    await deleteApplianceMutation.mutateAsync(applianceId)
   }
 
-  function registerTemperature(payload: RegisterTemperaturePayload): TemperatureEntry | null {
-    const appliance = appliancesState.value.find((item) => item.id === payload.applianceId)
+  async function registerTemperature(payload: RegisterTemperaturePayload): Promise<TemperatureEntry | null> {
+    const appliance = appliances.value.find((item) => item.id === payload.applianceId)
     if (!appliance) {
       return null
     }
 
-    const measuredAt = payload.measuredAt ?? nowIso()
-    const status = evaluateTemperatureStatus(payload.temperature, appliance.threshold)
-
-    const entry: TemperatureEntry = {
-      id: createId('entry'),
-      applianceId: appliance.id,
-      measuredAt,
-      measuredBy: payload.measuredBy?.trim() || DEFAULT_MEASURED_BY,
-      temperature: payload.temperature,
-      note: payload.note?.trim() ?? '',
-      status,
-      createdAt: nowIso(),
-    }
-
-    entriesState.value = [entry, ...entriesState.value]
-    return entry
+    const result = await registerMeasurementMutation.mutateAsync(payload)
+    return mapMeasurement(result)
   }
 
-  function deleteEntries(entryIds: string[]): number {
+  async function deleteEntries(entryIds: number[]): Promise<number> {
     if (entryIds.length === 0) {
       return 0
     }
 
-    const idSet = new Set(entryIds)
-    const before = entriesState.value.length
-    entriesState.value = entriesState.value.filter((item) => !idSet.has(item.id))
-    return before - entriesState.value.length
+    const result = await deleteMeasurementsMutation.mutateAsync(entryIds)
+    return result.deleted ?? 0
   }
 
   return {

@@ -14,24 +14,31 @@ import SelectItem from '@/components/ui/select/SelectItem.vue'
 import SelectTrigger from '@/components/ui/select/SelectTrigger.vue'
 import SelectValue from '@/components/ui/select/SelectValue.vue'
 import { SidebarTrigger } from '@/components/ui/sidebar'
+import FoodDeviationFormDialog from '@/components/deviations/FoodDeviationFormDialog.vue'
 import {
   evaluateTemperatureStatus,
   formatThreshold,
   useTemperatureMonitoring,
 } from '@/composables/useTemperatureMonitoring'
-import { useTemperatureRegistration } from '@/composables/useTemperatureRegistration'
+import { useCreateFoodDeviationMutation } from '@/composables/useFoodDeviations'
+import { useMembersQuery } from '@/composables/useMembers'
 import { useAuthStore } from '@/stores/auth'
 import { Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import type { CreateFoodDeviationRequest, DeviationSeverity } from '@/types/deviation'
 import { toast } from 'vue-sonner'
 
 const auth = useAuthStore()
-const { activeAppliances, appliances, entries, deleteEntries } = useTemperatureMonitoring()
-const { registerTemperatureWithDeviation } = useTemperatureRegistration()
+const canManage = computed(() => auth.role === 'ADMIN' || auth.role === 'MANAGER')
+const membersQuery = useMembersQuery(canManage)
+const createFoodDeviation = useCreateFoodDeviationMutation()
+const { activeAppliances, appliances, entries, deleteEntries, registerTemperature } = useTemperatureMonitoring()
 
 const selectedApplianceId = ref<number | null>(null)
 const temperatureInput = ref('')
 const note = ref('')
 const selectedEntryIds = ref<number[]>([])
+const deviationDialogOpen = ref(false)
+const deviationFormPrefill = ref<Partial<CreateFoodDeviationRequest> | null>(null)
 
 watch(
   activeAppliances,
@@ -127,6 +134,23 @@ const completedUnitsVariant = computed(() => {
   return progressVariant(completedUnitsToday.value, completedUnitsTarget.value)
 })
 
+const isCreatingDeviation = computed(() => createFoodDeviation.isPending.value)
+
+const memberOptions = computed(() => {
+  if (canManage.value) {
+    return (membersQuery.data.value ?? []).map((member) => ({
+      userId: member.userId,
+      label: `${member.userFullName} (${member.role})`,
+    }))
+  }
+
+  if (!auth.user) {
+    return []
+  }
+
+  return [{ userId: auth.user.id, label: `${auth.user.fullName} (Deg)` }]
+})
+
 watch(recentEntries, (rows) => {
   const validIds = new Set(rows.map((row) => row.id))
   selectedEntryIds.value = selectedEntryIds.value.filter((id) => validIds.has(id))
@@ -162,6 +186,20 @@ function formatDateTime(value: string): string {
   }).format(date)
 }
 
+function toDeviationSeverity(temperature: number, min: number, max: number): DeviationSeverity {
+  const distance = temperature < min ? min - temperature : temperature - max
+
+  if (distance >= 5) {
+    return 'CRITICAL'
+  }
+
+  if (distance >= 2) {
+    return 'HIGH'
+  }
+
+  return 'MEDIUM'
+}
+
 async function submitTemperature(): Promise<void> {
   if (!selectedAppliance.value) {
     return
@@ -172,18 +210,27 @@ async function submitTemperature(): Promise<void> {
     return
   }
 
-  const result = await registerTemperatureWithDeviation({
+  const entry = await registerTemperature({
     applianceId: selectedAppliance.value.id,
     temperature,
     note: note.value,
   })
 
-  if (!result.entry) {
+  if (!entry) {
     return
   }
 
-  if (result.deviationFailed) {
-    toast.warning('Temperatur ble lagret, men avvik kunne ikke opprettes automatisk.')
+  if (entry.status === 'DEVIATION') {
+    const threshold = selectedAppliance.value.threshold
+    deviationFormPrefill.value = {
+      reportedAt: entry.measuredAt,
+      deviationType: 'TEMPERATUR',
+      severity: toDeviationSeverity(entry.temperature, threshold.min, threshold.max),
+      description: `Temperaturavvik registrert for ${selectedAppliance.value.name}. Målt ${entry.temperature.toFixed(1)}°C (grense ${threshold.min} til ${threshold.max}°C).`,
+      immediateAction: note.value.trim() || undefined,
+    }
+    deviationDialogOpen.value = true
+    toast.warning('Temperaturavvik registrert. Fyll ut avviksskjemaet.')
   }
 
   temperatureInput.value = ''
@@ -218,6 +265,17 @@ async function deleteSelectedMeasurements(): Promise<void> {
     toast.success(`${deletedCount} måling${deletedCount > 1 ? 'er' : ''} slettet`)
   }
 }
+
+async function handleCreateDeviation(payload: CreateFoodDeviationRequest): Promise<void> {
+  try {
+    await createFoodDeviation.mutateAsync(payload)
+    toast.success('Matavvik registrert')
+    deviationDialogOpen.value = false
+    deviationFormPrefill.value = null
+  } catch {
+    toast.error('Kunne ikke registrere matavvik')
+  }
+}
 </script>
 
 <template>
@@ -232,7 +290,6 @@ async function deleteSelectedMeasurements(): Promise<void> {
 
     <div class="page-content">
       <section class="page-intro">
-        <Badge tone="brand">IK-Mat</Badge>
         <h1>Temperaturmåling</h1>
         <p>Manuell registrering av temperaturer på kjøleskap og frysere.</p>
       </section>
@@ -398,6 +455,15 @@ async function deleteSelectedMeasurements(): Promise<void> {
           </div>
         </article>
       </section>
+
+      <FoodDeviationFormDialog
+        :open="deviationDialogOpen"
+        :members="memberOptions"
+        :submitting="isCreatingDeviation"
+        :prefill="deviationFormPrefill"
+        @update:open="(v) => (deviationDialogOpen = v)"
+        @create="handleCreateDeviation"
+      />
     </div>
   </AppLayout>
 </template>
@@ -445,7 +511,7 @@ async function deleteSelectedMeasurements(): Promise<void> {
 }
 
 .page-intro h1 {
-  margin-top: 0.5rem;
+  margin-top: 0;
   font-size: 1.5rem;
   line-height: 1.2;
 }

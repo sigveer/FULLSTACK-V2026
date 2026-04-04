@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { Pencil, Plus, Refrigerator, Snowflake, Trash2 } from 'lucide-vue-next'
+import { MoreVertical, Pencil, Plus, Power, PowerOff, Refrigerator, Snowflake, Trash2 } from 'lucide-vue-next'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import OverviewCard from '@/components/common/OverviewCard.vue'
 import Badge from '@/components/ui/badge/Badge.vue'
@@ -13,13 +13,19 @@ import AlertDialogDescription from '@/components/ui/alert-dialog/AlertDialogDesc
 import AlertDialogFooter from '@/components/ui/alert-dialog/AlertDialogFooter.vue'
 import AlertDialogHeader from '@/components/ui/alert-dialog/AlertDialogHeader.vue'
 import AlertDialogTitle from '@/components/ui/alert-dialog/AlertDialogTitle.vue'
-import AlertDialogTrigger from '@/components/ui/alert-dialog/AlertDialogTrigger.vue'
 import Dialog from '@/components/ui/dialog/Dialog.vue'
 import DialogContent from '@/components/ui/dialog/DialogContent.vue'
 import DialogDescription from '@/components/ui/dialog/DialogDescription.vue'
 import DialogFooter from '@/components/ui/dialog/DialogFooter.vue'
 import DialogHeader from '@/components/ui/dialog/DialogHeader.vue'
 import DialogTitle from '@/components/ui/dialog/DialogTitle.vue'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import Input from '@/components/ui/input/Input.vue'
 import { Separator } from '@/components/ui/separator'
 import Select from '@/components/ui/select/Select.vue'
@@ -54,6 +60,8 @@ const {
 const isCreateDialogOpen = ref(false)
 const isEditDialogOpen = ref(false)
 const editingApplianceId = ref<number | null>(null)
+const isDeleteDialogOpen = ref(false)
+const appliancePendingDelete = ref<TemperatureAppliance | null>(null)
 
 const createName = ref('')
 const createType = ref<TemperatureApplianceType>('FRIDGE')
@@ -208,6 +216,21 @@ async function toggleActive(appliance: TemperatureAppliance): Promise<void> {
 async function removeApplianceById(applianceId: number): Promise<void> {
   await deleteAppliance(applianceId)
 }
+
+function openDeleteDialog(appliance: TemperatureAppliance): void {
+  appliancePendingDelete.value = appliance
+  isDeleteDialogOpen.value = true
+}
+
+async function confirmDeleteAppliance(): Promise<void> {
+  if (!appliancePendingDelete.value) {
+    return
+  }
+
+  await removeApplianceById(appliancePendingDelete.value.id)
+  isDeleteDialogOpen.value = false
+  appliancePendingDelete.value = null
+}
 </script>
 
 <template>
@@ -223,7 +246,6 @@ async function removeApplianceById(applianceId: number): Promise<void> {
     <div class="page-content">
       <section class="page-intro">
         <div>
-          <Badge tone="brand">IK-Mat</Badge>
           <h1>Hvitevarer</h1>
           <p>Legg til, rediger og vedlikehold kjøleskap og frysere for temperaturmåling.</p>
         </div>
@@ -327,41 +349,52 @@ async function removeApplianceById(applianceId: number): Promise<void> {
               </dl>
 
               <div class="device-actions">
-                <Button variant="outline" size="sm" @click="openEditDialog(item)">
-                  <Pencil />
-                  Rediger
-                </Button>
-                <Button variant="outline" size="sm" @click="toggleActive(item)">
-                  {{ item.isActive ? 'Sett inaktiv' : 'Aktiver' }}
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger>
-                    <Button variant="destructive" size="sm">
-                      <Trash2 />
-                      Slett
+                <DropdownMenu>
+                  <DropdownMenuTrigger as-child>
+                    <Button variant="ghost" size="icon-sm" class="actions-trigger">
+                      <MoreVertical :size="18" />
                     </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Slette enhet?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Er du sikker på at du vil slette {{ item.name }}? Alle tilhørende temperaturregistreringer for denne enheten blir også slettet.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Avbryt</AlertDialogCancel>
-                      <AlertDialogAction variant="destructive" @click="removeApplianceById(item.id)">
-                        Slett enhet
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" :side-offset="4">
+                    <DropdownMenuItem @click="openEditDialog(item)">
+                      <Pencil :size="16" />
+                      Rediger
+                    </DropdownMenuItem>
+                    <DropdownMenuItem @click="toggleActive(item)">
+                      <PowerOff v-if="item.isActive" :size="16" />
+                      <Power v-else :size="16" />
+                      {{ item.isActive ? 'Sett inaktiv' : 'Aktiver' }}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem class="menu-item--danger" @click="openDeleteDialog(item)">
+                      <Trash2 :size="16" />
+                      Slett enhet
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </article>
           </div>
         </section>
       </section>
     </div>
+
+    <AlertDialog v-model:open="isDeleteDialogOpen">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Slette enhet?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Er du sikker på at du vil slette {{ appliancePendingDelete?.name }}? Alle tilhørende temperaturregistreringer for denne enheten blir også slettet.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Avbryt</AlertDialogCancel>
+          <AlertDialogAction variant="destructive" @click="confirmDeleteAppliance">
+            Slett enhet
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
 
     <Dialog :open="isCreateDialogOpen" @update:open="(v) => (isCreateDialogOpen = v)">
       <DialogContent>
@@ -491,7 +524,7 @@ async function removeApplianceById(applianceId: number): Promise<void> {
 }
 
 .page-intro h1 {
-  margin-top: 0.5rem;
+  margin-top: 0;
   font-size: 1.45rem;
   line-height: 1.2;
 }
@@ -622,9 +655,16 @@ async function removeApplianceById(applianceId: number): Promise<void> {
 
 .device-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
+  justify-content: flex-end;
   margin-top: 0.95rem;
+}
+
+.actions-trigger {
+  margin-left: auto;
+}
+
+:deep(.menu-item--danger) {
+  color: hsl(var(--destructive));
 }
 
 .form-grid {

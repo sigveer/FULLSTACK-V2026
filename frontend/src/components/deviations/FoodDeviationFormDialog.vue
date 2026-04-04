@@ -29,11 +29,12 @@ const props = withDefaults(
     open: boolean
     mode?: 'create' | 'edit'
     initial?: FoodDeviation | null
+    prefill?: Partial<CreateFoodDeviationRequest> | null
     submitting?: boolean
     members: MemberOption[]
     inline?: boolean
   }>(),
-  { mode: 'create', initial: null, submitting: false, inline: false },
+  { mode: 'create', initial: null, prefill: null, submitting: false, inline: false },
 )
 
 const emits = defineEmits<{
@@ -128,6 +129,37 @@ watch(
       preventiveResponsibleUserId.value = ''
       preventiveDeadline.value = ''
       status.value = 'OPEN'
+
+      const prefill = props.prefill
+      if (prefill?.reportedAt) {
+        const reported = new Date(prefill.reportedAt)
+        if (!Number.isNaN(reported.getTime())) {
+          reportedDate.value = reported.toISOString().slice(0, 10)
+          reportedTime.value = reported.toISOString().slice(11, 16)
+        }
+      }
+      if (prefill?.deviationType) deviationType.value = prefill.deviationType
+      if (prefill?.severity) severity.value = prefill.severity
+      if (prefill?.description) description.value = prefill.description
+      if (prefill?.immediateAction) immediateAction.value = prefill.immediateAction
+      if (prefill?.immediateActionByUserId) immediateActionByUserId.value = String(prefill.immediateActionByUserId)
+      if (prefill?.immediateActionAt) {
+        const actionAt = new Date(prefill.immediateActionAt)
+        if (!Number.isNaN(actionAt.getTime())) {
+          immediateActionTime.value = actionAt.toISOString().slice(11, 16)
+        }
+      }
+      if (prefill?.cause) cause.value = prefill.cause
+      if (prefill?.preventiveMeasures) preventiveMeasures.value = prefill.preventiveMeasures
+      if (prefill?.preventiveResponsibleUserId) {
+        preventiveResponsibleUserId.value = String(prefill.preventiveResponsibleUserId)
+      }
+      if (prefill?.preventiveDeadline) {
+        const deadline = new Date(prefill.preventiveDeadline)
+        if (!Number.isNaN(deadline.getTime())) {
+          preventiveDeadline.value = deadline.toISOString().slice(0, 10)
+        }
+      }
     }
     errorMessage.value = ''
   },

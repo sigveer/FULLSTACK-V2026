@@ -33,3 +33,4 @@ aws:
 resend:
   api-key: ${RESEND_API_KEY}
   from-email: Fullstack-v2026 <onboarding@resend.dev>
+  dev-mode: ${RESEND_DEV_MODE:false}

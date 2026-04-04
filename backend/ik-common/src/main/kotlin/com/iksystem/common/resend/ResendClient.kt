@@ -10,6 +10,11 @@ class ResendClient(private val props: ResendConfig) {
     private val restTemplate = RestTemplate()
 
     fun sendEmail(to: String, subject: String, html: String) {
+        if (props.devMode) {
+            println("DEV MODE: Email not sent to $to with subject: $subject")
+            return
+        }
+
         val headers = HttpHeaders()
         headers.contentType = MediaType.APPLICATION_JSON
         headers.setBearerAuth(props.apiKey)

@@ -66,7 +66,7 @@ class AuthServiceTest : FunSpec({
         every { passwordEncoder.encode("password1") } returns "hashed"
         every { userRepository.save(any()) } answers { firstArg<User>().copy(id = 2L) }
         every { jwtService.generatePreAuthToken(any()) } returns "pre-auth-jwt"
-        every { emailService.sendVerificationEmail(any(), any()) } just runs
+        every { emailService.sendRegistrationEmail(any(), any()) } just runs
 
         val result = service.register(request)
 

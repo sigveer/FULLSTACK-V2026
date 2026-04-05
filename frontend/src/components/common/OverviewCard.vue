@@ -49,7 +49,7 @@ withDefaults(defineProps<{
 
 .card-sub {
   font-size: 0.75rem;
-  color: #d97706;
+  color: hsl(var(--muted-foreground));
   margin: 4px 0 0;
 }
 

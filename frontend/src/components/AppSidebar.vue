@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   ClipboardCheck,
   Thermometer,
+  Refrigerator,
   GraduationCap,
   ScrollText,
   AlertTriangle,
@@ -51,6 +52,7 @@ const navMain = [
     items: [
       { title: 'Sjekklister', url: '/sjekklister', icon: ClipboardCheck },
       { title: 'Temperaturlogg', url: '/temperatur', icon: Thermometer },
+      { title: 'Hvitevarer', url: '/temperatur/hvitevarer', icon: Refrigerator },
     ],
   },
   {

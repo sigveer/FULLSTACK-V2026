@@ -1,5 +1,5 @@
 <script setup lang="ts">
-type ButtonVariant = "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
+type ButtonVariant = "default" | "destructive" | "outline" | "secondary" | "ghost" | "link" | "destructive-ghost"
 type ButtonSize = "default" | "xs" | "sm" | "lg" | "icon" | "icon-sm" | "icon-lg"
 
 interface Props {
@@ -102,6 +102,18 @@ import { computed } from "vue"
 }
 .btn--destructive:active {
   background-color: hsl(0, 55%, 36%);
+}
+
+.btn--destructive-ghost {
+  background-color: hsl(0 80% 95%);
+  color: hsl(var(--destructive, 0 55% 42%));
+  box-shadow: none;
+}
+.btn--destructive-ghost:hover {
+  background-color: hsl(0 80% 90%);
+}
+.btn--destructive-ghost:active {
+  background-color: hsl(0 80% 85%);
 }
 
 .btn--outline {

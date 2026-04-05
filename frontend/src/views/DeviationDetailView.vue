@@ -388,11 +388,15 @@ function handleError(error: unknown, fallback: string) {
 
 .back-button {
   display: inline-flex; align-items: center; gap: 6px;
-  background: none; border: none; cursor: pointer;
-  color: hsl(var(--muted-foreground)); font-size: 0.9rem; padding: 4px 0;
+  width: fit-content;
+  background: none !important; border: none; cursor: pointer;
+  color: hsl(var(--muted-foreground)); font-size: 0.85rem; padding: 4px 0;
   transition: color 150ms ease;
 }
-.back-button:hover { color: hsl(var(--foreground)); }
+.back-button:hover {
+  background: none !important;
+  color: hsl(var(--foreground));
+}
 
 .detail-layout { max-width: 720px; }
 .detail-main { display: flex; flex-direction: column; gap: 1.75rem; }

@@ -218,14 +218,6 @@ function handleMutationError(error: unknown, fallbackMessage: string) {
         <p>Oversikt over ansattes opplæringsstatus</p>
       </div>
       <div class="header-actions">
-        <Button
-          v-if="selected.size > 0"
-          variant="destructive"
-          @click="openDeleteSelected"
-        >
-          <Trash2 :size="16" />
-          Slett ({{ selected.size }})
-        </Button>
         <Button @click="showRegister = true">
           <Plus :size="16" />
           Registrer opplæring
@@ -244,9 +236,19 @@ function handleMutationError(error: unknown, fallbackMessage: string) {
 
     <!-- Table -->
     <section class="table-section">
-      <div class="search-wrapper">
-        <Search :size="16" class="search-icon" />
-        <input v-model="search" class="search-input" placeholder="Søk etter ansatt, type eller status..." />
+      <div class="search-row">
+        <div class="search-wrapper">
+          <Search :size="16" class="search-icon" />
+          <input v-model="search" class="search-input" placeholder="Søk etter ansatt, type eller status..." />
+        </div>
+        <Button
+          v-if="selected.size > 0"
+          variant="destructive-ghost"
+          @click="openDeleteSelected"
+        >
+          <Trash2 :size="16" />
+          Slett ({{ selected.size }})
+        </Button>
       </div>
 
       <p v-if="trainingLogsQuery.isLoading.value" class="state-line">Laster opplæringer...</p>
@@ -377,8 +379,8 @@ function handleMutationError(error: unknown, fallbackMessage: string) {
           <AlertDialogTitle>Slett opplæring?</AlertDialogTitle>
           <AlertDialogDescription>
             {{ deletingIds.length === 1
-              ? 'Er du sikker på at du vil slette denne opplæringen? Dette kan ikke angres.'
-              : `Er du sikker på at du vil slette ${deletingIds.length} opplæringer? Dette kan ikke angres.`
+            ? 'Er du sikker på at du vil slette denne opplæringen? Dette kan ikke angres.'
+            : `Er du sikker på at du vil slette ${deletingIds.length} opplæringer? Dette kan ikke angres.`
             }}
           </AlertDialogDescription>
         </AlertDialogHeader>
@@ -454,6 +456,13 @@ h1 { margin: 0; font-size: 2.4rem; letter-spacing: -0.02em; }
 
 /* Table */
 .table-section { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.search-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
 
 .table-card {
   border: 1px solid hsl(var(--border, 35 18% 88%));

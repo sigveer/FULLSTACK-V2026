@@ -53,6 +53,7 @@ import {
   useInviteMutation,
 } from '@/composables/useMembers'
 import type { OrganizationMember } from '@/types/member'
+import type { AxiosError } from 'axios'
 
 const auth = useAuthStore()
 const search = ref('')
@@ -224,10 +225,10 @@ function handleInvite() {
         addDialogOpen.value = false
         toast.success('Invitasjon sendt til ' + inviteEmail.value.trim())
       },
-      onError: (error: any) => {
-        const msg = error?.response?.data?.error?.message ?? 'Kunne ikke sende invitasjon'
-        inviteError.value = msg
-        toast.error(msg)
+      onError: (error: AxiosError) => {
+        const msg = (error?.response?.data as Record<string, unknown>)?.error?.message ?? 'Kunne ikke sende invitasjon'
+        inviteError.value = msg as string
+        toast.error(msg as string)
       },
     },
   )

@@ -12,6 +12,7 @@ import InputGroupButton from '@/components/ui/input-group/InputGroupButton.vue'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/lib/api'
 import type { AuthResponse } from '@/types/auth'
+import type { AxiosError } from 'axios'
 
 const route = useRoute()
 const router = useRouter()
@@ -41,8 +42,9 @@ onMounted(async () => {
     inviteEmail.value = data.email
     orgName.value = data.organizationName
     existingUser.value = data.existingUser
-  } catch (e: any) {
-    error.value = e?.response?.data?.error?.message ?? 'Invitasjonen er ugyldig eller utløpt.'
+  } catch (e) {
+    const axiosError = e as AxiosError
+    error.value = (axiosError?.response?.data as Record<string, unknown>)?.error?.message ?? 'Invitasjonen er ugyldig eller utløpt.'
   } finally {
     loading.value = false
   }
@@ -76,8 +78,9 @@ const form = useForm({
       const { data } = await api.post<AuthResponse>(`/invitations/${token}/accept`, payload)
       auth.setAuth(data)
       router.push('/')
-    } catch (e: any) {
-      submitError.value = e?.response?.data?.error?.message ?? 'Noe gikk galt. Prøv igjen.'
+    } catch (e) {
+      const axiosError = e as AxiosError
+      submitError.value = (axiosError?.response?.data as Record<string, unknown>)?.error?.message ?? 'Noe gikk galt. Prøv igjen.'
     } finally {
       submitting.value = false
     }

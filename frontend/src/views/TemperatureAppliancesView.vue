@@ -317,9 +317,35 @@ async function confirmDeleteAppliance(): Promise<void> {
                   <h3>{{ item.name }}</h3>
                   <p>{{ toTypeLabel(item.type) }}</p>
                 </div>
-                <Badge :tone="item.isActive ? 'ok' : 'neutral'">
-                  {{ item.isActive ? 'Aktiv' : 'Inaktiv' }}
-                </Badge>
+                <div class="device-meta-actions">
+                  <Badge :tone="item.isActive ? 'ok' : 'neutral'">
+                    {{ item.isActive ? 'Aktiv' : 'Inaktiv' }}
+                  </Badge>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger as-child>
+                      <Button variant="ghost" size="icon-sm" class="actions-trigger" aria-label="Åpne handlinger">
+                        <MoreVertical :size="18" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" :side-offset="4">
+                      <DropdownMenuItem @click="openEditDialog(item)">
+                        <Pencil :size="16" />
+                        Rediger
+                      </DropdownMenuItem>
+                      <DropdownMenuItem @click="toggleActive(item)">
+                        <PowerOff v-if="item.isActive" :size="16" />
+                        <Power v-else :size="16" />
+                        {{ item.isActive ? 'Sett inaktiv' : 'Aktiver' }}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem class="menu-item--danger" @click="openDeleteDialog(item)">
+                        <Trash2 :size="16" />
+                        Slett enhet
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
 
               <dl class="device-facts">
@@ -348,31 +374,6 @@ async function confirmDeleteAppliance(): Promise<void> {
                 </div>
               </dl>
 
-              <div class="device-actions">
-                <DropdownMenu>
-                  <DropdownMenuTrigger as-child>
-                    <Button variant="ghost" size="icon-sm" class="actions-trigger">
-                      <MoreVertical :size="18" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" :side-offset="4">
-                    <DropdownMenuItem @click="openEditDialog(item)">
-                      <Pencil :size="16" />
-                      Rediger
-                    </DropdownMenuItem>
-                    <DropdownMenuItem @click="toggleActive(item)">
-                      <PowerOff v-if="item.isActive" :size="16" />
-                      <Power v-else :size="16" />
-                      {{ item.isActive ? 'Sett inaktiv' : 'Aktiver' }}
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem class="menu-item--danger" @click="openDeleteDialog(item)">
-                      <Trash2 :size="16" />
-                      Slett enhet
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
             </article>
           </div>
         </section>
@@ -601,6 +602,13 @@ async function confirmDeleteAppliance(): Promise<void> {
   gap: 0.625rem;
 }
 
+.device-meta-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  justify-self: end;
+}
+
 .device-icon-wrap {
   display: flex;
   height: 2.25rem;
@@ -653,14 +661,8 @@ async function confirmDeleteAppliance(): Promise<void> {
   font-size: 0.85rem;
 }
 
-.device-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 0.95rem;
-}
-
 .actions-trigger {
-  margin-left: auto;
+  margin-left: 0;
 }
 
 :deep(.menu-item--danger) {

@@ -14,6 +14,8 @@ import api from '@/lib/api'
 import type { AuthResponse } from '@/types/auth'
 import type { AxiosError } from 'axios'
 
+type ApiError = AxiosError<{ error: { message: string } }>
+
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
@@ -43,8 +45,7 @@ onMounted(async () => {
     orgName.value = data.organizationName
     existingUser.value = data.existingUser
   } catch (e) {
-    const axiosError = e as AxiosError
-    error.value = (axiosError?.response?.data as Record<string, unknown>)?.error?.message ?? 'Invitasjonen er ugyldig eller utløpt.'
+    error.value = (e as ApiError)?.response?.data?.error?.message ?? 'Invitasjonen er ugyldig eller utløpt.'
   } finally {
     loading.value = false
   }
@@ -79,8 +80,7 @@ const form = useForm({
       auth.setAuth(data)
       router.push('/')
     } catch (e) {
-      const axiosError = e as AxiosError
-      submitError.value = (axiosError?.response?.data as Record<string, unknown>)?.error?.message ?? 'Noe gikk galt. Prøv igjen.'
+      submitError.value = (e as ApiError)?.response?.data?.error?.message ?? 'Noe gikk galt. Prøv igjen.'
     } finally {
       submitting.value = false
     }

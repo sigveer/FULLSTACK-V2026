@@ -10,9 +10,9 @@ INSERT INTO training_logs (
 )
 VALUES
     (
-        (SELECT id FROM organizations WHERE name = 'IK System'),
-        (SELECT id FROM users WHERE email = 'employee@iksystem.local'),
-        (SELECT id FROM users WHERE email = 'admin@iksystem.local'),
+        (SELECT id FROM organizations WHERE name = 'Everest Sushi & Fusion AS'),
+        (SELECT id FROM users WHERE email = 'employee@everest.local'),
+        (SELECT id FROM users WHERE email = 'admin@everest.local'),
         'Brannvernkurs',
         'Årlig brannvernopplæring for alle ansatte.',
         DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 3 MONTH),
@@ -20,9 +20,9 @@ VALUES
         'COMPLETED'
     ),
     (
-        (SELECT id FROM organizations WHERE name = 'IK System'),
-        (SELECT id FROM users WHERE email = 'manager@iksystem.local'),
-        (SELECT id FROM users WHERE email = 'admin@iksystem.local'),
+        (SELECT id FROM organizations WHERE name = 'Everest Sushi & Fusion AS'),
+        (SELECT id FROM users WHERE email = 'manager@everest.local'),
+        (SELECT id FROM users WHERE email = 'admin@everest.local'),
         'HMS-kurs',
         'Grunnleggende HMS-opplæring.',
         DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 11 MONTH),
@@ -30,9 +30,9 @@ VALUES
         'EXPIRES_SOON'
     ),
     (
-        (SELECT id FROM organizations WHERE name = 'IK System'),
-        (SELECT id FROM users WHERE email = 'employee@iksystem.local'),
-        (SELECT id FROM users WHERE email = 'manager@iksystem.local'),
+        (SELECT id FROM organizations WHERE name = 'Everest Sushi & Fusion AS'),
+        (SELECT id FROM users WHERE email = 'employee@everest.local'),
+        (SELECT id FROM users WHERE email = 'manager@everest.local'),
         'Allergenopplæring',
         'Opplæring i allergenhåndtering for kjøkkenpersonell.',
         DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 14 MONTH),
@@ -40,9 +40,9 @@ VALUES
         'EXPIRED'
     ),
     (
-        (SELECT id FROM organizations WHERE name = 'IK System'),
-        (SELECT id FROM users WHERE email = 'manager@iksystem.local'),
-        (SELECT id FROM users WHERE email = 'admin@iksystem.local'),
+        (SELECT id FROM organizations WHERE name = 'Everest Sushi & Fusion AS'),
+        (SELECT id FROM users WHERE email = 'manager@everest.local'),
+        (SELECT id FROM users WHERE email = 'admin@everest.local'),
         'Ansvarlig vertskap',
         'Kurs i ansvarlig alkoholservering.',
         NULL,
@@ -51,8 +51,8 @@ VALUES
     ),
     (
         (SELECT id FROM organizations WHERE name = 'Demo Organization'),
-        (SELECT id FROM users WHERE email = 'employee@iksystem.local'),
-        (SELECT id FROM users WHERE email = 'employee@iksystem.local'),
+        (SELECT id FROM users WHERE email = 'employee@everest.local'),
+        (SELECT id FROM users WHERE email = 'employee@everest.local'),
         'Førstehjelp',
         'Grunnkurs i førstehjelp.',
         DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 MONTH),

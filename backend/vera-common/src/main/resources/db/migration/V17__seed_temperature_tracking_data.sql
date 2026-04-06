@@ -1,4 +1,4 @@
--- Seed temperature tracking data for organization 1 (IK System)
+-- Seed temperature tracking data for organization 1 (Vera)
 -- 3 fridges + 2 freezers, and 5 measurements without deviations.
 
 INSERT INTO temperature_appliances (organization_id, name, appliance_type, min_temperature, max_temperature, is_active)

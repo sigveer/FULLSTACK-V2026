@@ -12,17 +12,17 @@
     </parent>
 
     <groupId>com.iksystem</groupId>
-    <artifactId>ik-system</artifactId>
+    <artifactId>vera-system</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-    <name>IK System</name>
-    <description>IK System - Food and Alcohol Compliance Platform</description>
+    <name>Vera System</name>
+    <description>Vera - Food and Alcohol Compliance Platform</description>
 
     <modules>
-        <module>ik-common</module>
-        <module>ik-food-service</module>
-        <module>ik-alcohol-service</module>
+        <module>vera-common</module>
+        <module>vera-food-service</module>
+        <module>vera-alcohol-service</module>
     </modules>
 
     <properties>
@@ -50,7 +50,7 @@
             </dependency>
             <dependency>
                 <groupId>com.iksystem</groupId>
-                <artifactId>ik-common</artifactId>
+                <artifactId>vera-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

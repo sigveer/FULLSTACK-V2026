@@ -3,7 +3,7 @@
 
 Semester-prosjekt IDATT2105 – Fullstack-appsutvikling (2026)
 
-Et digitalt internkontrollsystem for restauranter, barer og serveringsteder. SafeServe hjelper virksomheter å forenkle compliance med helse-, sikkerhets- og alkoholreguleringer ved å digitalisere sjekklister, temperaturlogging og rutiner for avviksoppfølging.
+Et digitalt internkontrollsystem for restauranter, barer og serveringssteder. Vera hjelper virksomheter å forenkle compliance med helse-, sikkerhets- og alkoholreguleringer ved å digitalisere sjekklister, temperaturlogging og rutiner for avviksoppfølging.
 
 ## Rask oppstart
 
@@ -20,8 +20,9 @@ docker compose up --build
 ```
 
 Applikasjonen vil starte på:
-- **Frontend**: http://localhost:5173 (Vue.js + Vite)
-- **Backend API**: http://localhost:8080 (Spring Boot)
+- **Frontend**: http://localhost (Nginx + Vue app)
+- **Backend API (mat)**: http://localhost:8081
+- **Backend API (alkohol)**: http://localhost:8082
 - **Database**: mysql:3306
 
 ### Stopp appen
@@ -42,18 +43,18 @@ Default testdata er satt opp automatisk ved oppstart. Bruk disse credentials for
 
 | Email | Passord | Rolle | Organisasjon |
 |-------|---------|-------|--------------|
-| `admin@iksystem.local` | `password` | ADMIN | IK System |
-| `manager@iksystem.local` | `password` | MANAGER | IK System |
-| `employee@iksystem.local` | `password` | EMPLOYEE | IK System & Demo Org |
+| `admin@everest.local` | `password` | ADMIN | Everest Sushi & Fusion AS |
+| `manager@everest.local` | `password` | MANAGER | Everest Sushi & Fusion AS |
+| `employee@everest.local` | `password` | EMPLOYEE | Everest Sushi & Fusion AS & Demo Organization |
 
 ## Prosjektstruktur
 
 ```
-SafeServe/
-├── backend/           # Spring Boot API (Java 17+)
-│   ├── ik-common/     # Felles tjenester
-│   ├── ik-mat/        # IK-Mat modul
-│   └── ik-alkohol/    # IK-Alkohol modul
+FULLSTACK-V2026/
+├── backend/           # Spring Boot API (Java 21+)
+│   ├── vera-common/           # Felles tjenester
+│   ├── vera-food-service/     # Vera Mat modul
+│   └── vera-alcohol-service/  # Vera Alkohol modul
 ├── frontend/          # Vue.js 3 + Vite
 ├── docker-compose.yml # Container orchestration
 └── docs/              # Dokumentasjon
@@ -64,7 +65,7 @@ SafeServe/
 | Område | Teknologi | Versjon |
 |--------|-----------|---------|
 | **Frontend** | Vue.js | 3.x |
-| | Vite | 5.x |
+| | Vite | 7.x |
 | | TypeScript | 5.x |
 | | Node.js | 18+ |
 | **Backend** | Java | 21 |
@@ -73,7 +74,7 @@ SafeServe/
 | | Spring Framework | 6.x |
 | | Spring Security | 6.x |
 | | JPA/Hibernate | Latest |
-| **Database** | MySQL | 8.0 / 9.0 |
+| **Database** | MySQL | 8.4 |
 | | Flyway | Latest |
 | **DevOps** | Docker | Latest |
 | | Docker Compose | Latest |
@@ -83,17 +84,17 @@ SafeServe/
 
 ## Database
 
-- **Database**: `ik_system`
-- **Bruker**: `ik_user`
-- **Passord**: `ik_password`
+- **Database**: `vera_system`
+- **Bruker**: `vera_user`
+- **Passord**: `vera_password`
 - **Port**: 3306
 
 Backend bruker **Flyway** for databasemigrasjoner og oppretter/migrerer schema automatisk ved oppstart.
 
 ## Dokumentasjon
 
-- **API referanse**: Se Swagger UI på `http://localhost:8080/swagger-ui.html`
-- **Systemdokumentasjon**: Se `/docs/` for arkitektur, klasdiagrammer og setup-guide
+- **API referanse**: Se Swagger UI på `http://localhost/swagger.html`
+- **Systemdokumentasjon**: Se `/docs/` for arkitektur, klassediagrammer og setup-guide
 - **Wiki**: Full teknisk dokumentasjon og arkitektur-notater
 
 ## Nyttige kommandoer
@@ -105,12 +106,12 @@ docker compose logs -f
 
 **Se logger fra bare backend:**
 ```bash
-docker compose logs -f backend
+docker compose logs -f vera-mat vera-alkohol
 ```
 
 **Restart bare backend (for rask utvikling):**
 ```bash
-docker compose restart backend
+docker compose restart vera-mat vera-alkohol
 ```
 
 **Kjør bare backend lokalt (uten Docker):**
@@ -123,7 +124,6 @@ mvn spring-boot:run
 **Kjør bare frontend lokalt (uten Docker):**
 ```bash
 cd frontend
-pnpm run dev
+npm run dev
 ```
 ---
-**Innleveringsfrist**: Fredag 10. april 2026 kl. 14:00

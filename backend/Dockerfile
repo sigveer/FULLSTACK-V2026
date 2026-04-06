@@ -4,9 +4,9 @@ WORKDIR /app
 
 # Copy POMs first for dependency caching
 COPY pom.xml .
-COPY ik-common/pom.xml ik-common/
-COPY ik-food-service/pom.xml ik-food-service/
-COPY ik-alcohol-service/pom.xml ik-alcohol-service/
+COPY vera-common/pom.xml vera-common/
+COPY vera-food-service/pom.xml vera-food-service/
+COPY vera-alcohol-service/pom.xml vera-alcohol-service/
 RUN mvn dependency:go-offline -B
 
 # Copy sources and build

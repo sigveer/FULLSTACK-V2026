@@ -6,13 +6,13 @@
 
     <parent>
         <groupId>com.iksystem</groupId>
-        <artifactId>ik-system</artifactId>
+        <artifactId>vera-system</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>ik-common</artifactId>
-    <name>IK Common</name>
-    <description>Shared library for IK System services</description>
+    <artifactId>vera-common</artifactId>
+    <name>Vera Common</name>
+    <description>Shared library for Vera services</description>
 
     <dependencies>
         <dependency>

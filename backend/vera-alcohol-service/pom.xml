@@ -6,13 +6,13 @@
 
     <parent>
         <groupId>com.iksystem</groupId>
-        <artifactId>ik-system</artifactId>
+        <artifactId>vera-system</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>ik-alcohol-service</artifactId>
-    <name>IK Alcohol Service</name>
-    <description>IK-Alkohol alcohol compliance service</description>
+    <artifactId>vera-alcohol-service</artifactId>
+    <name>Vera Alcohol Service</name>
+    <description>Vera Alkohol alcohol compliance service</description>
 
     <dependencies>
         <!-- Kotlin -->
@@ -23,7 +23,7 @@
 
         <dependency>
             <groupId>com.iksystem</groupId>
-            <artifactId>ik-common</artifactId>
+            <artifactId>vera-common</artifactId>
         </dependency>
     </dependencies>
 

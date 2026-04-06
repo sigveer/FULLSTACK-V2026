@@ -1,72 +1,72 @@
 services:
   mysql:
     image: mysql:8.4
-    container_name: ik_mysql
+    container_name: vera_mysql
     environment:
       MYSQL_ROOT_PASSWORD: root_password
-      MYSQL_DATABASE: ik_system
-      MYSQL_USER: ik_user
-      MYSQL_PASSWORD: ik_password
+      MYSQL_DATABASE: vera_system
+      MYSQL_USER: vera_user
+      MYSQL_PASSWORD: vera_password
     ports:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     networks:
-      - ik-network
+      - vera-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uik_user", "-pik_password"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uvera_user", "-pvera_password"]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 20s
 
-  ik-mat:
+  vera-mat:
     build:
       context: ./backend
       args:
-        SERVICE_MODULE: ik-food-service
-    container_name: ik_mat
+        SERVICE_MODULE: vera-food-service
+    container_name: vera_mat
     env_file: .env
     environment:
-      DB_URL: jdbc:mysql://mysql:3306/ik_system?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_URL: jdbc:mysql://mysql:3306/vera_system?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     ports:
       - "8081:8080"
     networks:
-      - ik-network
+      - vera-network
     depends_on:
       mysql:
         condition: service_healthy
 
-  ik-alkohol:
+  vera-alkohol:
     build:
       context: ./backend
       args:
-        SERVICE_MODULE: ik-alcohol-service
-    container_name: ik_alkohol
+        SERVICE_MODULE: vera-alcohol-service
+    container_name: vera_alkohol
     env_file: .env
     environment:
-      DB_URL: jdbc:mysql://mysql:3306/ik_system?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_URL: jdbc:mysql://mysql:3306/vera_system?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     ports:
       - "8082:8080"
     networks:
-      - ik-network
+      - vera-network
     depends_on:
       mysql:
         condition: service_healthy
 
   frontend:
     build: ./frontend
-    container_name: ik_frontend
+    container_name: vera_frontend
     ports:
       - "80:80"
     networks:
-      - ik-network
+      - vera-network
     depends_on:
-      - ik-mat
-      - ik-alkohol
+      - vera-mat
+      - vera-alkohol
 
 networks:
-  ik-network:
+  vera-network:
     driver: bridge
 
 volumes:

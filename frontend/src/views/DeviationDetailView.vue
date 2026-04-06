@@ -221,7 +221,7 @@ function handleError(error: unknown, fallback: string) {
               <Badge :tone="foodDeviation.severity === 'HIGH' || foodDeviation.severity === 'CRITICAL' ? 'danger' : foodDeviation.severity === 'MEDIUM' ? 'warning' : 'ok'">
                 {{ severityLabel[foodDeviation.severity] }}
               </Badge>
-              <Badge tone="brand">IK-Mat</Badge>
+              <Badge tone="brand">Vera Mat</Badge>
               <Badge :tone="foodDeviation.status === 'OPEN' ? 'danger' : foodDeviation.status === 'UNDER_TREATMENT' ? 'warning' : 'ok'">
                 {{ foodStatusLabel[foodDeviation.status] }}
               </Badge>
@@ -288,7 +288,7 @@ function handleError(error: unknown, fallback: string) {
                 {{ sourceLabel[alcoholDeviation.reportSource] }}
               </Badge>
               <Badge tone="neutral">{{ alcoholTypeLabel[alcoholDeviation.deviationType] }}</Badge>
-              <Badge tone="brand">IK-Alkohol</Badge>
+              <Badge tone="brand">Vera Alkohol</Badge>
               <Badge :tone="alcoholDeviation.status === 'OPEN' ? 'danger' : alcoholDeviation.status === 'UNDER_TREATMENT' ? 'warning' : 'ok'">
                 {{ alcoholStatusLabel[alcoholDeviation.status] }}
               </Badge>

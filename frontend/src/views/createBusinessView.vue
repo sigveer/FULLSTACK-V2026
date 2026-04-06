@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import CreateOrgForm from '@/components/CreateOrgForm.vue'
 import { ref } from 'vue'
+import veraLogo from '@/assets/vera.png'
 
 const createOrgFormRef = ref<InstanceType<typeof CreateOrgForm> | null>(null)
 </script>
@@ -11,7 +12,7 @@ const createOrgFormRef = ref<InstanceType<typeof CreateOrgForm> | null>(null)
 
     <div class="card">
       <div>
-        <h2>IK-Komplett</h2>
+        <img :src="veraLogo" alt="Vera" class="brand-logo" />
         <p class="subtitle">Fyll inn informasjon om din virksomhet</p>
       </div>
 
@@ -54,10 +55,11 @@ const createOrgFormRef = ref<InstanceType<typeof CreateOrgForm> | null>(null)
   gap: 10px;
 }
 
-h2 {
-  color: hsl(var(--primary));
-  text-align: center;
-  margin-bottom: 8px;
+.brand-logo {
+  display: block;
+  width: 180px;
+  max-width: 100%;
+  margin: 0 auto 12px;
 }
 
 .subtitle {

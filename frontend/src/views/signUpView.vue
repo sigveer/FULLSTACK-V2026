@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import SignUpForm from '@/components/SignUpForm.vue'
 import { ref } from 'vue'
+import veraLogo from '@/assets/vera.png'
 
 const signUpFormRef = ref<InstanceType<typeof SignUpForm> | null>(null)
 </script>
@@ -24,7 +25,7 @@ const signUpFormRef = ref<InstanceType<typeof SignUpForm> | null>(null)
         <div class="card">
           <div>
             <p class="step">STEG 1: REGISTRERING</p>
-            <h2>IK-Komplett</h2>
+            <img :src="veraLogo" alt="Vera" class="brand-logo" />
             <p class="subtitle">Opprett en konto for å komme i gang</p>
           </div>
 
@@ -153,10 +154,11 @@ const signUpFormRef = ref<InstanceType<typeof SignUpForm> | null>(null)
   margin: 0;
 }
 
-h2 {
-  color: hsl(var(--primary));
-  text-align: center;
-  margin-bottom: 8px;
+.brand-logo {
+  display: block;
+  width: 180px;
+  max-width: 100%;
+  margin: 0 auto 12px;
 }
 
 .subtitle {

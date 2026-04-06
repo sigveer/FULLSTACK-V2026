@@ -79,7 +79,7 @@ const relativeTime = computed(() => {
       <div class="card-body">
         <div class="tag-row">
           <Badge tone="neutral">{{ deviationTypeLabel[deviation.deviationType] }}</Badge>
-          <Badge tone="brand">IK-Alkohol</Badge>
+          <Badge tone="brand">Vera Alkohol</Badge>
           <Badge :tone="statusTone[deviation.status]">{{ statusLabel[deviation.status] }}</Badge>
         </div>
         <p class="description">{{ deviation.description }}</p>

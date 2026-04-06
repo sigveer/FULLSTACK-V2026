@@ -85,7 +85,7 @@ const statusOptions: Array<{ value: FoodDeviationStatus; label: string }> = [
 const dialogTitle = computed(() => props.mode === 'create' ? 'Registrer matavvik' : 'Rediger matavvik')
 const dialogDescription = computed(() =>
   props.mode === 'create'
-    ? 'Avvik skal registreres umiddelbart når det oppdages. Dokumentasjonen er lovpålagt iht. IK-matforskriften §5.4 og §5.5.'
+    ? 'Avvik skal registreres umiddelbart når det oppdages. Dokumentasjonen er lovpålagt iht. matforskriften §5.4 og §5.5.'
     : 'Oppdater informasjonen for valgt avvik',
 )
 const submitLabel = computed(() => {

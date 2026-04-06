@@ -107,7 +107,7 @@ const latestDeviations = computed(() => {
   const food = (foodQuery.data.value ?? []).map((d) => ({
     id: d.id,
     title: d.description.slice(0, 80),
-    moduleLabel: 'IK-Mat',
+    moduleLabel: 'Vera Mat',
     reportedBy: d.reportedByUserName,
     reportedAt: d.reportedAt,
     severityLabel: toSeverityLabel(d.severity),
@@ -115,7 +115,7 @@ const latestDeviations = computed(() => {
   const alcohol = (alcoholQuery.data.value ?? []).map((d) => ({
     id: d.id,
     title: d.description.slice(0, 80),
-    moduleLabel: 'IK-Alkohol',
+    moduleLabel: 'Vera Alkohol',
     reportedBy: d.reportedByUserName,
     reportedAt: d.reportedAt,
     severityLabel: 'Middels' as const,
@@ -195,8 +195,8 @@ function getDailyChecklistStats(checklists: Checklist[]): { total: number; compl
         </div>
 
         <div class="module-toggle" aria-label="Velg modul">
-          <Badge tone="brand">IK-Mat</Badge>
-          <Badge tone="ok">IK-Alkohol</Badge>
+          <Badge tone="brand">Vera Mat</Badge>
+          <Badge tone="ok">Vera Alkohol</Badge>
         </div>
       </section>
 

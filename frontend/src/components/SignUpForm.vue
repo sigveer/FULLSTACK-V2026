@@ -202,7 +202,7 @@ defineExpose({ registerError: register.error })
           />
           <span class="terms-text">
             Jeg godtar <a href="#" @click.stop>vilkårene</a> og
-            <a href="#" @click.stop>personvernreglene</a> for IK-Komplett
+            <a href="#" @click.stop>personvernreglene</a> for Vera
           </span>
         </div>
         <p v-if="state.meta.errors.length" class="error">{{ state.meta.errors[0] }}</p>

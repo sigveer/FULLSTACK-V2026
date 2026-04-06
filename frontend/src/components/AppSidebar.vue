@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/sidebar'
 import { useAuthStore } from '@/stores/auth'
 import { computed } from 'vue'
+import veraIcon from '@/assets/vera-icon.png'
 
 const auth = useAuthStore()
 
@@ -48,7 +49,7 @@ const navMain = [
     ],
   },
   {
-    label: 'IK-MAT',
+    label: 'VERA MAT',
     items: [
       { title: 'Sjekklister', url: '/sjekklister', icon: ClipboardCheck },
       { title: 'Temperaturlogg', url: '/temperatur', icon: Thermometer },
@@ -56,7 +57,7 @@ const navMain = [
     ],
   },
   {
-    label: 'IK-ALKOHOL',
+    label: 'VERA ALKOHOL',
     items: [
       { title: 'Opplæring', url: '/opplaering', icon: GraduationCap },
       { title: 'Bevilling', url: '/bevilling', icon: ScrollText },
@@ -83,7 +84,7 @@ const navSecondary = [
         <SidebarMenuItem>
           <SidebarMenuButton size="lg" as="div">
             <div class="sidebar-brand-icon">
-              {{ orgName.substring(0, 2).toUpperCase() }}
+              <img :src="veraIcon" alt="Vera" class="sidebar-brand-image" />
             </div>
             <div class="sidebar-brand-text">
               <span class="sidebar-brand-name">{{ orgName }}</span>
@@ -115,11 +116,14 @@ const navSecondary = [
   align-items: center;
   justify-content: center;
   border-radius: 0.5rem;
-  background-color: hsl(var(--primary, 245 43% 52%));
-  color: hsl(var(--primary-foreground, 0 0% 100%));
-  font-weight: 700;
-  font-size: 0.75rem;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.sidebar-brand-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .sidebar-brand-text {

@@ -18,7 +18,7 @@ const canSeeAll = computed(() =>
       <div class="flex items-center gap-3 px-4 py-3 border-b border-stone-200 bg-stone-50">
         <SidebarTrigger />
         <span class="text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-3 py-1">
-          IK-Alkohol
+          Vera Alkohol
         </span>
       </div>
     </template>

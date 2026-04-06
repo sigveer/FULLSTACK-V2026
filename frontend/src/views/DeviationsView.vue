@@ -145,8 +145,8 @@ const underTreatmentCount = computed(() => combinedDeviations.value.filter((i) =
 const closedCount = computed(() => combinedDeviations.value.filter((i) => i.data.status === 'CLOSED').length)
 
 const moduleCards = computed(() => [
-  { key: 'IK_MAT', label: 'IK-Mat', count: foodCount.value, variant: 'neutral' as const },
-  { key: 'IK_ALKOHOL', label: 'IK-Alkohol', count: alcoholCount.value, variant: 'neutral' as const },
+  { key: 'IK_MAT', label: 'Vera Mat', count: foodCount.value, variant: 'neutral' as const },
+  { key: 'IK_ALKOHOL', label: 'Vera Alkohol', count: alcoholCount.value, variant: 'neutral' as const },
 ])
 
 const statusCards = computed(() => [
@@ -163,8 +163,8 @@ const statusFilters: Array<{ label: string; value: StatusFilter }> = [
 
 const moduleFilters: Array<{ label: string; value: ModuleFilter }> = [
   { label: 'Alle', value: 'ALL' },
-  { label: 'IK-Mat', value: 'IK_MAT' },
-  { label: 'IK-Alkohol', value: 'IK_ALKOHOL' },
+  { label: 'Vera Mat', value: 'IK_MAT' },
+  { label: 'Vera Alkohol', value: 'IK_ALKOHOL' },
 ]
 
 // --- Create flow ---
@@ -294,7 +294,7 @@ function handleError(error: unknown, fallback: string) {
       <section class="header-row">
         <div>
           <h1>Avviksoversikt</h1>
-          <p>Alle registrerte avvik for IK-Mat og IK-Alkohol</p>
+          <p>Alle registrerte avvik for Vera Mat og Vera Alkohol</p>
         </div>
 
         <Button @click="openCreateDialog">
@@ -443,7 +443,7 @@ function handleError(error: unknown, fallback: string) {
             size="sm"
             @click="createTab = 'IK_MAT'"
           >
-            IK-Mat
+            Vera Mat
           </Button>
           <Button
             type="button"
@@ -452,7 +452,7 @@ function handleError(error: unknown, fallback: string) {
             size="sm"
             @click="createTab = 'IK_ALKOHOL'"
           >
-            IK-Alkohol
+            Vera Alkohol
           </Button>
         </div>
         <div class="create-form-scroll">

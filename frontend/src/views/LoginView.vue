@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import LoginForm from '@/components/LoginForm.vue'
 import { ref } from 'vue'
+import veraLogo from '@/assets/vera.png'
 
 const loginFormRef = ref<InstanceType<typeof LoginForm> | null>(null)
 </script>
@@ -11,7 +12,7 @@ const loginFormRef = ref<InstanceType<typeof LoginForm> | null>(null)
 
     <div class="card">
       <div>
-        <h2>IK-Komplett</h2>
+        <img :src="veraLogo" alt="Vera" class="brand-logo" />
         <p class="subtitle">Logg inn for å fortsette</p>
       </div>
 
@@ -53,10 +54,11 @@ const loginFormRef = ref<InstanceType<typeof LoginForm> | null>(null)
   gap: 10px;
 }
 
-h2 {
-  color: hsl(var(--primary));
-  text-align: center;
-  margin-bottom: 8px;
+.brand-logo {
+  display: block;
+  width: 180px;
+  max-width: 100%;
+  margin: 0 auto 12px;
 }
 
 .subtitle {
